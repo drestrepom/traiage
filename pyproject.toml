@@ -7,7 +7,11 @@ authors = [
     { name = "Diego Restrepo", email = "restrepomesadiego@gmail.com" }
 ]
 requires-python = ">=3.14"
-dependencies = []
+dependencies = [
+    "click>=8.3.1",
+    "pydantic-ai-slim[openai]>=1.56.0",
+    "tree-sitter-python>=0.25.0",
+]
 
 [project.scripts]
 triage = "triage:main"
@@ -15,3 +19,9 @@ triage = "triage:main"
 [build-system]
 requires = ["uv_build>=0.9.26,<0.10.0"]
 build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "mypy>=1.19.1",
+    "ruff>=0.15.0",
+]
