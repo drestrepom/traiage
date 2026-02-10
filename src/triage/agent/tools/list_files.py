@@ -6,7 +6,7 @@ from pydantic import Field
 from pydantic_ai import RunContext, Tool
 
 from triage.agent.deps import AgentDeps
-from triage.agent.tools._common import resolve_repo_path
+from triage.agent.tools.common import resolve_repo_path
 
 DEFAULT_IGNORE_PATTERNS: tuple[str, ...] = (
     "node_modules/",
@@ -124,7 +124,7 @@ async def list_files(
 ) -> str:
     target = resolve_repo_path(ctx, relative_path or ".")
     if not target.is_dir():
-        raise ValueError(f"Not a directory: {relative_path or '.'}")
+        return f"Not a directory: {relative_path or '.'}"
 
     ignore_globs = [_ignore_to_ripgrep_glob(p) for p in DEFAULT_IGNORE_PATTERNS]
     if ignore:

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Optional
+from typing import Optional
 
 from tree_sitter import Language, Node, Parser
 import tree_sitter_python as tspython
@@ -52,6 +52,7 @@ def find_largest_node_for_line(
 
     return best
 
+
 def find_function_node_for_line(
     file_path: Path,
     one_based_line: int,
@@ -64,7 +65,7 @@ def find_function_node_for_line(
             return node
         node = node.parent
     return None
-    
+
 
 def find_smallest_node_containing_text_in_line(
     file_path: Path,

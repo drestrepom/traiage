@@ -3,9 +3,10 @@ from pydantic import Field
 from pydantic_ai import RunContext, Tool
 
 from triage.agent.deps import AgentDeps
-from triage.agent.tools._common import resolve_repo_path
+from triage.agent.tools.common import resolve_repo_path
 
 LINES_LIMIT = 100
+
 
 def read_file(
     ctx: RunContext[AgentDeps],
@@ -13,7 +14,9 @@ def read_file(
         str | None,
         Field(description="The path to the file to read from the repository root."),
     ] = None,
-    offset: Annotated[int, Field(description="The number of lines to offset the file from the start.")] = 0,
+    offset: Annotated[
+        int, Field(description="The number of lines to offset the file from the start.")
+    ] = 0,
 ) -> str:
     target = resolve_repo_path(ctx, relative_path)
     if not target.is_file():
@@ -21,7 +24,11 @@ def read_file(
     text = target.read_text(encoding="utf-8", errors="replace")
     lines = text.splitlines()
     if len(lines) > LINES_LIMIT + offset:
-        return "\n".join(lines[offset:LINES_LIMIT + offset]) + "\n...\n" + "File truncated"
+        return (
+            "\n".join(lines[offset : LINES_LIMIT + offset])
+            + "\n...\n"
+            + "File truncated"
+        )
     return "\n".join(lines[offset:])
 
 

@@ -7,7 +7,7 @@ from lsp_client.clients.pyright import PyrightClient
 from pydantic_ai import RunContext
 
 from triage.agent.deps import AgentDeps
-from triage.agent.tools._common import resolve_repo_path
+from triage.agent.tools.common import resolve_repo_path
 from triage.agent.tools.utils.tree import (
     find_largest_node_for_line,
 )
