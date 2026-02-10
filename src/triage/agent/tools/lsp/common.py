@@ -3,12 +3,12 @@ from pathlib import Path
 from typing import Any, Sequence
 from urllib.parse import unquote, urlparse
 from lsp_client import lsp_type
-from lsp_client.clients.pyright import PyrightClient
+from lsp_client import Position, PyreflyClient
 from pydantic_ai import RunContext
 
 from triage.agent.deps import AgentDeps
 from triage.agent.tools.common import resolve_repo_path
-from triage.agent.tools.utils.tree import (
+from triage.utils.tree import (
     find_largest_node_for_line,
 )
 
@@ -45,11 +45,11 @@ SYMBOL_KIND_NAMES: dict[int, str] = {
 }
 
 
-def start_lsp_client(workspace: Path) -> PyrightClient:
-    return PyrightClient(workspace=workspace)
+def start_lsp_client(workspace: Path) -> PyreflyClient:
+    return PyreflyClient(workspace=workspace)
 
 
-def get_lsp(ctx: RunContext[AgentDeps]) -> PyrightClient:
+def get_lsp(ctx: RunContext[AgentDeps]) -> PyreflyClient:
     lsp = getattr(ctx.deps, "lsp", None)
     if lsp is None:
         raise RuntimeError(

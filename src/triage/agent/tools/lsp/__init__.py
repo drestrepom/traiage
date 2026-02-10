@@ -13,7 +13,6 @@ from .document_symbol import LSP_DOCUMENT_SYMBOL_TOOL, lsp_document_symbol
 from .find_references import LSP_FIND_REFERENCES_TOOL, lsp_find_references
 from .go_to_definition import LSP_GO_TO_DEFINITION_TOOL, lsp_go_to_definition
 from .hover import LSP_HOVER_TOOL, lsp_hover
-from .workspace_symbol import LSP_WORKSPACE_SYMBOL_TOOL, lsp_workspace_symbol
 
 __all__ = [
     "start_lsp_client",

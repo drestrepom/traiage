@@ -11,7 +11,7 @@ from triage.agent.tools.lsp.common import (
     format_locations_markdown,
     get_lsp,
 )
-from triage.agent.tools.utils.tree import (
+from triage.utils.tree import (
     find_largest_node_for_line,
     find_smallest_node_containing_text_in_line,
 )

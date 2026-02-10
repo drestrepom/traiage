@@ -6,7 +6,7 @@ from typing import NamedTuple
 from pydantic_ai import RunContext, Tool
 
 from triage.agent.deps import AgentDeps
-from triage.agent.tools._common import resolve_repo_path
+from triage.agent.tools.common import resolve_repo_path
 
 MAX_LINE_LENGTH = 2000
 GREP_MATCH_LIMIT = 100
