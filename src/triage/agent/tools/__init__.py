@@ -12,6 +12,7 @@ from triage.agent.tools.lsp import (
 )
 from triage.agent.tools.read_file import READ_FILE_TOOL
 from triage.agent.tools.read_file_lines import READ_FILE_LINES_TOOL
+from triage.agent.tools.search_owasp import SEARCH_OWASP_TOOL
 
 __all__ = [
     "GREP_TOOL",
@@ -23,5 +24,6 @@ __all__ = [
     "LSP_HOVER_TOOL",
     "READ_FILE_LINES_TOOL",
     "READ_FILE_TOOL",
+    "SEARCH_OWASP_TOOL",
     "start_lsp_client",
 ]

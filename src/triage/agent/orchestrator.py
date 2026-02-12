@@ -98,7 +98,6 @@ def is_evidence_sufficient(evidence_pack: EvidencePack, finding: Vulnerability) 
 
 
 def _to_markdown(data: Any, depth: int = 0) -> str:
-    """Serialize dict/list to markdown (torsimany-style: headers for nesting, bullets for values)."""
     depth = min(depth, 5)  # cap at ######
     out: list[str] = []
     tab = "  "
@@ -123,7 +122,6 @@ def _to_markdown(data: Any, depth: int = 0) -> str:
 
 
 def _serialize_for_prompt(obj: Any) -> str:
-    """Serialize object to markdown for use in prompts (torsimany-style)."""
     if obj is None:
         return "null"
     if hasattr(obj, "model_dump"):

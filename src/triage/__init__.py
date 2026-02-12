@@ -1,2 +1,8 @@
+from triage.cli.commands import cli, run_pipeline
+
+
 def main() -> None:
-    print("Hello from triage!")
+    cli()
+
+
+__all__ = ["main", "cli", "run_pipeline"]

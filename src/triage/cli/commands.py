@@ -214,5 +214,44 @@ def convert_report(
         )
 
 
+@click.command("build-owasp-db")
+@click.option(
+    "--docs-path",
+    type=click.Path(exists=True, file_okay=False, path_type=Path),
+    default=None,
+    help="Path to the OWASP Top 10 docs directory (defaults to $OWASP_DOCS_PATH env var).",
+)
+@click.option(
+    "--db-path",
+    type=click.Path(path_type=Path),
+    default=None,
+    help="Path to the Milvus Lite database file (defaults to ~/.local/share/triage/owasp.db).",
+)
+@click.option(
+    "--force",
+    is_flag=True,
+    default=False,
+    help="Drop and re-index if collection already exists.",
+)
+def build_owasp_db(docs_path: Path | None, db_path: Path | None, force: bool) -> None:
+    """Build the local OWASP Top 10 2025 vector database from markdown docs."""
+    from triage.owasp.indexer import index_owasp_docs
+
+    try:
+        count = asyncio.run(
+            index_owasp_docs(
+                docs_path=docs_path, db_path=db_path, force_reindex=force
+            )
+        )
+        click.echo(f"Indexed {count} OWASP documents.")
+    except FileNotFoundError as e:
+        click.echo(f"Error: {e}", err=True)
+        raise click.Exit(1)
+    except ValueError as e:
+        click.echo(f"Error: {e}", err=True)
+        raise click.Exit(1)
+
+
 cli.add_command(run_pipeline)
 cli.add_command(convert_report)
+cli.add_command(build_owasp_db)

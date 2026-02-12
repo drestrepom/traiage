@@ -3,7 +3,11 @@ from pydantic_ai import Agent
 
 from triage.agent.deps import BaseDeps
 from triage.agent.prompts import SYSTEM_PROMPT_A7_REPORT_FORMATTER
-from triage.agent.tools import LIST_FILES_TOOL, READ_FILE_LINES_TOOL
+from triage.agent.tools import (
+    LIST_FILES_TOOL,
+    READ_FILE_LINES_TOOL,
+    SEARCH_OWASP_TOOL,
+)
 
 from pydantic_ai.models.openai import OpenAIResponsesModelSettings
 
@@ -27,6 +31,6 @@ def create_report_formatter_agent(
         deps_type=BaseDeps,
         output_type=ReportContent,
         system_prompt=SYSTEM_PROMPT_A7_REPORT_FORMATTER,
-        tools=[LIST_FILES_TOOL, READ_FILE_LINES_TOOL],
+        tools=[LIST_FILES_TOOL, READ_FILE_LINES_TOOL, SEARCH_OWASP_TOOL],
         model_settings=settings,
     )
