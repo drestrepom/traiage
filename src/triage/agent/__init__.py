@@ -1,4 +1,4 @@
-from triage.agent.agent import create_agent
-from triage.agent.deps import AgentDeps
+from triage.agent.deps import AgentDeps, PipelineDeps
+from triage.agent.orchestrator import triage_finding
 
-__all__ = ["create_agent", "AgentDeps"]
+__all__ = ["AgentDeps", "PipelineDeps", "triage_finding"]
