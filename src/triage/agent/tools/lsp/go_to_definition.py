@@ -5,7 +5,7 @@ from lsp_client import Position
 from pydantic import Field
 from pydantic_ai import RunContext, Tool
 
-from triage.agent.deps import AgentDeps
+from triage.agent.deps import BaseDeps
 from triage.agent.tools.lsp.common import (
     abs_path,
     format_locations_markdown,
@@ -18,7 +18,7 @@ from triage.utils.tree import (
 
 
 async def lsp_go_to_definition(
-    ctx: RunContext[AgentDeps],
+    ctx: RunContext[BaseDeps],
     file_path: str,
     line: Annotated[int, Field(description="1-based line number")],
     symbol_name: Annotated[
@@ -55,7 +55,7 @@ async def lsp_go_to_definition(
         )
         if node is not None:
             node_snippet = node.text.decode("utf-8", errors="replace")
-            output_lines.append("**Nodo en origen (tree-sitter):**\n\n")
+            output_lines.append("**Origin node (tree-sitter):**\n\n")
             output_lines.append(f"```python\n{node_snippet}\n```\n\n")
 
     return "\n".join(output_lines)
@@ -69,4 +69,5 @@ LSP_GO_TO_DEFINITION_TOOL = Tool(
         "line and character are 1-based (as in editors)."
     ),
     takes_ctx=True,
+    max_retries=3,
 )

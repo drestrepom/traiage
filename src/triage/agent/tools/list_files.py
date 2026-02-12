@@ -5,7 +5,7 @@ from typing import Annotated
 from pydantic import Field
 from pydantic_ai import RunContext, Tool
 
-from triage.agent.deps import AgentDeps
+from triage.agent.deps import BaseDeps
 from triage.agent.tools.common import resolve_repo_path
 
 DEFAULT_IGNORE_PATTERNS: tuple[str, ...] = (
@@ -113,7 +113,7 @@ def _render_dir(
 
 
 async def list_files(
-    ctx: RunContext[AgentDeps],
+    ctx: RunContext[BaseDeps],
     relative_path: Annotated[
         str,
         Field(

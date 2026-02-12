@@ -5,7 +5,7 @@ from typing import NamedTuple
 
 from pydantic_ai import RunContext, Tool
 
-from triage.agent.deps import AgentDeps
+from triage.agent.deps import BaseDeps
 from triage.agent.tools.common import resolve_repo_path
 
 MAX_LINE_LENGTH = 2000
@@ -92,7 +92,7 @@ async def _run_ripgrep(
 
 
 async def grep(
-    ctx: RunContext[AgentDeps],
+    ctx: RunContext[BaseDeps],
     pattern: str,
     path: str | None = None,
     include: str | None = None,

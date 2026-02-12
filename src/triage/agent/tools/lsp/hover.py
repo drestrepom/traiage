@@ -3,7 +3,7 @@ from pydantic import Field
 from lsp_client import Position
 from pydantic_ai import RunContext, Tool
 
-from triage.agent.deps import AgentDeps
+from triage.agent.deps import BaseDeps
 from triage.agent.tools.lsp.common import (
     abs_path,
     get_lsp,
@@ -12,7 +12,7 @@ from triage.agent.tools.lsp.common import (
 
 
 async def lsp_hover(
-    ctx: RunContext[AgentDeps],
+    ctx: RunContext[BaseDeps],
     file_path: str,
     line: Annotated[int, Field(description="1-based line number")],
 ) -> str:
@@ -43,4 +43,5 @@ LSP_HOVER_TOOL = Tool(
         "line and character are 1-based (as in editors)."
     ),
     takes_ctx=True,
+    max_retries=3,
 )

@@ -2,14 +2,14 @@ from typing import Annotated
 from pydantic import Field
 from pydantic_ai import RunContext, Tool
 
-from triage.agent.deps import AgentDeps
+from triage.agent.deps import BaseDeps
 from triage.agent.tools.common import resolve_repo_path
 
 LINES_LIMIT = 100
 
 
 def read_file(
-    ctx: RunContext[AgentDeps],
+    ctx: RunContext[BaseDeps],
     relative_path: Annotated[
         str | None,
         Field(description="The path to the file to read from the repository root."),

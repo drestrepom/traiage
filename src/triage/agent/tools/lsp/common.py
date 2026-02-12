@@ -6,7 +6,7 @@ from lsp_client import lsp_type
 from lsp_client import Position, PyreflyClient
 from pydantic_ai import RunContext
 
-from triage.agent.deps import AgentDeps
+from triage.agent.deps import BaseDeps
 from triage.agent.tools.common import resolve_repo_path
 from triage.utils.tree import (
     find_largest_node_for_line,
@@ -49,7 +49,7 @@ def start_lsp_client(workspace: Path) -> PyreflyClient:
     return PyreflyClient(workspace=workspace)
 
 
-def get_lsp(ctx: RunContext[AgentDeps]) -> PyreflyClient:
+def get_lsp(ctx: RunContext[BaseDeps]) -> PyreflyClient:
     lsp = getattr(ctx.deps, "lsp", None)
     if lsp is None:
         raise RuntimeError(
@@ -58,7 +58,7 @@ def get_lsp(ctx: RunContext[AgentDeps]) -> PyreflyClient:
     return lsp
 
 
-def abs_path(ctx: RunContext[AgentDeps], file_path: str) -> Path:
+def abs_path(ctx: RunContext[BaseDeps], file_path: str) -> Path:
     path_obj = Path(file_path)
     if path_obj.is_absolute():
         repo_root = ctx.deps.repo_path.resolve()
@@ -85,11 +85,11 @@ def preferred_character_for_line(abs_path: Path, one_based_line: int) -> int:
     return 0
 
 
-def repo_root(ctx: RunContext[AgentDeps]) -> Path:
+def repo_root(ctx: RunContext[BaseDeps]) -> Path:
     return ctx.deps.repo_path.resolve()
 
 
-def relative_to_repo(ctx: RunContext[AgentDeps], file_uri_or_path: str) -> str:
+def relative_to_repo(ctx: RunContext[BaseDeps], file_uri_or_path: str) -> str:
     root = repo_root(ctx)
 
     if file_uri_or_path.startswith("file://"):
@@ -116,7 +116,7 @@ def _get_attr_or_key(obj: Any, name: str) -> Any:
 
 
 def format_locations_markdown(
-    ctx: RunContext[AgentDeps],
+    ctx: RunContext[BaseDeps],
     locations: lsp_type.Location
     | Sequence[lsp_type.Location]
     | Sequence[lsp_type.LocationLink]
@@ -162,7 +162,7 @@ def format_locations_markdown(
 
 
 def format_hover_markdown(
-    ctx: RunContext[AgentDeps],
+    ctx: RunContext[BaseDeps],
     result: Any,
 ) -> str:
     if result is None:

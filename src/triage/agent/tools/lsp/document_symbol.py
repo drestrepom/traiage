@@ -2,7 +2,7 @@ from typing import Sequence
 
 from pydantic_ai import RunContext, Tool
 
-from triage.agent.deps import AgentDeps
+from triage.agent.deps import BaseDeps
 from triage.agent.tools.lsp import SYMBOL_KIND_NAMES
 from triage.agent.tools.lsp.common import (
     abs_path,
@@ -13,7 +13,7 @@ from lsp_client.utils.types import lsp_type
 
 
 def format_document_symbols_markdown(
-    ctx: RunContext[AgentDeps],
+    ctx: RunContext[BaseDeps],
     symbols: Sequence[lsp_type.SymbolInformation]
     | Sequence[lsp_type.DocumentSymbol]
     | None,
@@ -53,7 +53,7 @@ def format_document_symbols_markdown(
     return "\n".join(lines)
 
 
-async def lsp_document_symbol(ctx: RunContext[AgentDeps], file_path: str) -> str:
+async def lsp_document_symbol(ctx: RunContext[BaseDeps], file_path: str) -> str:
     abs_path_obj = abs_path(ctx, file_path)
     lsp = get_lsp(ctx)
 
@@ -67,4 +67,5 @@ LSP_DOCUMENT_SYMBOL_TOOL = Tool(
     name="lsp_document_symbol",
     description="List all document symbols (e.g. classes, functions) in the file.",
     takes_ctx=True,
+    max_retries=3,
 )

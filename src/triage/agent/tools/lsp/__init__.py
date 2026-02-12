@@ -30,11 +30,9 @@ __all__ = [
     "lsp_find_references",
     "lsp_hover",
     "lsp_document_symbol",
-    "lsp_workspace_symbol",
     # Objetos Tool
     "LSP_GO_TO_DEFINITION_TOOL",
     "LSP_FIND_REFERENCES_TOOL",
     "LSP_HOVER_TOOL",
     "LSP_DOCUMENT_SYMBOL_TOOL",
-    "LSP_WORKSPACE_SYMBOL_TOOL",
 ]
