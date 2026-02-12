@@ -18,7 +18,3 @@ class FindingResult(BaseModel):
     error_message: str | None = Field(
         default=None, description="When verdict is not_evaluated, reason for failure"
     )
-
-
-class ValidationReport(BaseModel):
-    findings: list[FindingResult] = Field(..., description="Result per finding")
