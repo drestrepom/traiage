@@ -38,6 +38,7 @@
         workspace = uv2nix.lib.workspace.loadWorkspace { workspaceRoot = ./.; };
         overlay = workspace.mkPyprojectOverlay { sourcePreference = "wheel"; };
         python = pkgs.python314;
+        # Instantiate pyproject.nix build from source (flake output does not expose .build in inputs')
         pyproject-nix-build = lib.fix (self:
           import (pyproject-nix-src + "/build/default.nix") {
             inherit lib;
@@ -45,11 +46,6 @@
           }
         );
         pythonBase = pkgs.callPackage pyproject-nix-build.packages { inherit python; };
-        torsimanyOverlay = final: prev: {
-          torsimany = prev.torsimany.overrideAttrs (old: {
-            nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [ final.setuptools ];
-          });
-        };
         triageSrcOverlay = final: prev: {
           triage = prev.triage.overrideAttrs (old: { src = ./.; });
         };
@@ -57,7 +53,6 @@
           lib.composeManyExtensions [
             pyproject-build-systems.overlays.wheel
             overlay
-            torsimanyOverlay
             triageSrcOverlay
           ]
         );
@@ -66,7 +61,11 @@
         packages.default = venv;
         apps.triage = {
           type = "app";
-          program = "${venv}/bin/triage";
+          program = "${pkgs.writeShellApplication {
+            name = "triage-wrapper";
+            runtimeInputs = [ venv pkgs.pandoc ];
+            text = "exec ${venv}/bin/triage \"$@\"";
+          }}/bin/triage-wrapper";
         };
       };
     };
