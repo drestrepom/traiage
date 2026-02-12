@@ -101,6 +101,7 @@ async def grep(
         raise ValueError("pattern is required")
 
     resolved = resolve_repo_path(ctx, path or ".")
+    effective_include: str | None
     if resolved.is_file():
         search_path = resolved.parent
         effective_include = resolved.name

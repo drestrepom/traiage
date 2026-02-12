@@ -54,7 +54,10 @@ async def lsp_go_to_definition(
             )
         )
         if node is not None:
-            node_snippet = node.text.decode("utf-8", errors="replace")
+            raw = node.text
+            node_snippet = (
+                raw.decode("utf-8", errors="replace") if raw is not None else ""
+            )
             output_lines.append("**Origin node (tree-sitter):**\n\n")
             output_lines.append(f"```python\n{node_snippet}\n```\n\n")
 

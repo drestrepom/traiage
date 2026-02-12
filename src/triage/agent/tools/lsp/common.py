@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Any, Sequence
 from urllib.parse import unquote, urlparse
 from lsp_client import lsp_type
-from lsp_client import Position, PyreflyClient
+from lsp_client import PyreflyClient
 from pydantic_ai import RunContext
 
 from triage.agent.deps import BaseDeps

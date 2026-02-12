@@ -18,6 +18,8 @@ def read_file(
         int, Field(description="The number of lines to offset the file from the start.")
     ] = 0,
 ) -> str:
+    if relative_path is None or not relative_path.strip():
+        raise ValueError("relative_path is required")
     target = resolve_repo_path(ctx, relative_path)
     if not target.is_file():
         raise FileNotFoundError(f"Not a file or not found: {relative_path}")
