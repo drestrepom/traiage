@@ -18,7 +18,7 @@ class ReportContent(BaseModel):
 
 
 settings = OpenAIResponsesModelSettings(
-    openai_reasoning_effort="minimal",
+    openai_reasoning_effort="low",
 )
 
 

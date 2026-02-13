@@ -1,3 +1,4 @@
+from triage.agent.tools.get_function_code import GET_FUNCTION_CODE_TOOL
 from triage.agent.tools.grep import GREP_TOOL
 from triage.agent.tools.list_files import (
     LIST_FILES_ENTRY_LIMIT,
@@ -15,6 +16,7 @@ from triage.agent.tools.read_file_lines import READ_FILE_LINES_TOOL
 from triage.agent.tools.search_owasp import SEARCH_OWASP_TOOL
 
 __all__ = [
+    "GET_FUNCTION_CODE_TOOL",
     "GREP_TOOL",
     "LIST_FILES_ENTRY_LIMIT",
     "LIST_FILES_TOOL",

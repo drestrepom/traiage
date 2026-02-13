@@ -3,6 +3,11 @@ from pydantic_ai import Agent
 from triage.agent.deps import PipelineDeps
 from triage.agent.prompts import SYSTEM_PROMPT_A3_ASSUMPTIONS_EXTRACTOR
 from triage.models.pipeline import AssumptionsResult
+from pydantic_ai.models.openai import OpenAIResponsesModelSettings
+
+settings = OpenAIResponsesModelSettings(
+    openai_reasoning_effort="low",
+)
 
 
 def create_assumptions_extractor_agent(
@@ -14,4 +19,5 @@ def create_assumptions_extractor_agent(
         output_type=AssumptionsResult,
         system_prompt=SYSTEM_PROMPT_A3_ASSUMPTIONS_EXTRACTOR,
         tools=[],
+        model_settings=settings,
     )
