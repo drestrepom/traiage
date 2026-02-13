@@ -5,7 +5,7 @@ from pydantic_ai import RunContext, Tool
 
 from triage.agent.deps import BaseDeps
 from triage.agent.tools.common import resolve_repo_path
-from triage.utils.tree import find_function_node_for_line
+from triage.utils.tree import enumerate_nodes_in_line, find_function_node_for_line
 
 
 def get_function_code(
@@ -29,11 +29,8 @@ def get_function_code(
         return f"File not found: {relative_path}"
     node = find_function_node_for_line(target, line_number)
     if node is None:
-        return f"No function found at line {line_number} in {relative_path}"
-    source_bytes = target.read_bytes()
-    return source_bytes[node.start_byte : node.end_byte].decode(
-        "utf-8", errors="replace"
-    )
+        return f"No function found at line {line_number} in {relative_path}\n{enumerate_nodes_in_line(node)}"
+    return enumerate_nodes_in_line(node)
 
 
 GET_FUNCTION_CODE_TOOL = Tool(

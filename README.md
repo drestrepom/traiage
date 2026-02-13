@@ -224,16 +224,10 @@ src/triage/
 
 ## Development
 
-### Tests
-
-```bash
-uv run pytest tests/unit -v                          # Run all tests
-uv run pytest tests/unit/test_models.py -v          # Run specific test
-```
-
 ### Code Quality
 
 ```bash
+nix run .#lint
 uv run mypy src/                                     # Type checking
 uv run ruff check src/                               # Linting
 ```

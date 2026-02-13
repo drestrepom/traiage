@@ -102,3 +102,16 @@ def find_smallest_node_containing_text_in_line(
             stack.append(child)
 
     return best
+
+
+def enumerate_nodes_in_line(
+    node: Node,
+) -> str:
+    lines = []
+    if not node.text:
+        return ""
+    for i, line in enumerate(
+        node.text.decode("utf-8").split("\n"), node.start_point[0] + 1
+    ):
+        lines.append(f"{i}| {line}")
+    return "\n".join(lines)

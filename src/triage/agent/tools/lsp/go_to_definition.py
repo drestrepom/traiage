@@ -12,6 +12,7 @@ from triage.agent.tools.lsp.common import (
     get_lsp,
 )
 from triage.utils.tree import (
+    enumerate_nodes_in_line,
     find_largest_node_for_line,
     find_smallest_node_containing_text_in_line,
 )
@@ -54,12 +55,8 @@ async def lsp_go_to_definition(
             )
         )
         if node is not None:
-            raw = node.text
-            node_snippet = (
-                raw.decode("utf-8", errors="replace") if raw is not None else ""
-            )
             output_lines.append("**Origin node (tree-sitter):**\n\n")
-            output_lines.append(f"```python\n{node_snippet}\n```\n\n")
+            output_lines.append(f"```python\n{enumerate_nodes_in_line(node)}\n```\n\n")
 
     return "\n".join(output_lines)
 

@@ -15,7 +15,7 @@ from triage.models.pipeline import EvidencePack
 from pydantic_ai.models.openai import OpenAIResponsesModelSettings
 
 settings = OpenAIResponsesModelSettings(
-    openai_reasoning_effort="low",
+    openai_reasoning_effort="medium",
 )
 
 
@@ -37,4 +37,6 @@ def create_evidence_collector_agent(
             LSP_DOCUMENT_SYMBOL_TOOL,
         ],
         model_settings=settings,
+        retries=3,
+        tool_timeout=10,
     )

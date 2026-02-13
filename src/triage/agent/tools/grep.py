@@ -121,12 +121,14 @@ async def grep(
 
     lines_out: list[str] = [f"Found {len(final)} matches"]
     current_file = ""
+    repo_path = Path(ctx.deps.repo_path)
     for m in final:
-        if m.path != current_file:
+        relative_path = str(Path(m.path).relative_to(repo_path))
+        if relative_path != current_file:
             if current_file:
                 lines_out.append("")
-            current_file = m.path
-            lines_out.append(f"{m.path}:")
+            current_file = relative_path
+            lines_out.append(f"{relative_path}:")
         text = m.line_text
         if len(text) > MAX_LINE_LENGTH:
             text = text[:MAX_LINE_LENGTH] + "..."

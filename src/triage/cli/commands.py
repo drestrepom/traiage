@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -30,15 +31,12 @@ logger = logging.getLogger(__name__)
 
 MAX_RETRIES = 3
 
-# Set to False to disable LSP server (LSP shutdown hangs, so we force exit)
-ENABLE_LSP = True
-
 
 async def _run_pipeline_findings(
     repo_path: Path,
     vulnerabilities: list[Vulnerability],
     concurrency: int,
-    lsp: Any = None,
+    lsp: Any,
 ) -> list[TriagePipelineReport]:
     semaphore = asyncio.Semaphore(concurrency)
     results: list[TriagePipelineReport | None] = [None] * len(vulnerabilities)
@@ -60,7 +58,7 @@ async def _run_pipeline_findings(
 
 @click.group()
 def cli() -> None:
-    """Triage SAST findings (single agent or multi-agent pipeline)."""
+    """Triage SAST findings"""
 
 
 @click.command("run-pipeline")
@@ -112,19 +110,10 @@ def run_pipeline(
                 repo_path, findings_list, concurrency, lsp=lsp
             )
 
-    async def _run_without_lsp() -> list[TriagePipelineReport]:
-        return await _run_pipeline_findings(
-            repo_path, findings_list, concurrency, lsp=None
-        )
-
     if not findings_list:
         pipeline_report = PipelineReport(reports=[])
-    elif ENABLE_LSP:
-        results = asyncio.run(_run_with_lsp())
-        pipeline_report = PipelineReport(reports=results)
     else:
-        logger.info("LSP disabled (ENABLE_LSP=False)")
-        results = asyncio.run(_run_without_lsp())
+        results = asyncio.run(_run_with_lsp())
         pipeline_report = PipelineReport(reports=results)
 
     out_base = output or Path("report")
@@ -242,10 +231,10 @@ def build_owasp_db(docs_path: Path | None, db_path: Path | None, force: bool) ->
         click.echo(f"Indexed {count} OWASP documents.")
     except FileNotFoundError as e:
         click.echo(f"Error: {e}", err=True)
-        raise click.Exit(1)
+        sys.exit(1)
     except ValueError as e:
         click.echo(f"Error: {e}", err=True)
-        raise click.Exit(1)
+        sys.exit(1)
 
 
 cli.add_command(run_pipeline)

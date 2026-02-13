@@ -27,7 +27,7 @@ from triage.models.pipeline import (
     VerdictResult,
 )
 from triage.models.vulnerability import Vulnerability
-from triage.utils.tree import find_function_node_for_line
+from triage.utils.tree import enumerate_nodes_in_line, find_function_node_for_line
 
 logger = logging.getLogger(__name__)
 
@@ -65,6 +65,7 @@ def _build_a0_prompt(finding: Vulnerability, repo_root: Path) -> str:
         start_row, _ = node.start_point
         end_row, _ = node.end_point
         parts.append(f"Containing function: lines {start_row + 1}-{end_row + 1}")
+        parts.append(enumerate_nodes_in_line(node))
     if finding.file:
         parts.append(f"Indicated file: {finding.file}")
     else:
