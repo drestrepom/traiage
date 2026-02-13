@@ -11,22 +11,6 @@ async def index_owasp_docs(
     db_path: Path | str | None = None,
     force_reindex: bool = False,
 ) -> int:
-    """Index OWASP Top 10 2025 markdown documents into the local Milvus Lite DB.
-
-    Args:
-        docs_path: Path to the OWASP docs directory (*.md files).
-                   If None, uses $OWASP_DOCS_PATH env var.
-        db_path: Path to the Milvus Lite database file.
-                 If None, uses $OWASP_DB_PATH or ~/.local/share/triage/owasp.db
-        force_reindex: If True, drop and re-index existing collection.
-
-    Returns:
-        Number of documents indexed.
-
-    Raises:
-        FileNotFoundError: If docs_path does not exist or is empty.
-        ValueError: If OWASP_DOCS_PATH env var is not set and docs_path is None.
-    """
     # Resolve docs_path
     if docs_path is None:
         docs_path = os.getenv("OWASP_DOCS_PATH")
@@ -88,12 +72,6 @@ async def index_owasp_docs(
 
 
 def _filename_to_owasp_url(filename: str) -> str:
-    """Convert OWASP Top 10 filename to canonical OWASP URL.
-
-    Examples:
-        A01_2025-Broken_Access_Control.md
-        -> https://owasp.org/Top10/2025/A01_2025-Broken_Access_Control/
-    """
     # Remove .md extension
     if filename.endswith(".md"):
         filename = filename[:-3]

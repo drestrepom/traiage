@@ -15,10 +15,8 @@ from triage.models.vulnerability import Vulnerability
 
 @dataclass
 class BaseDeps:
-    """Common deps for tools: repo_path and LSP (used by A0, A1, A2)."""
-
     repo_path: Path
-    lsp: Any  # None when LSP disabled
+    lsp: Any
 
 
 @dataclass

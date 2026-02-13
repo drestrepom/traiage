@@ -1,9 +1,9 @@
-"""Orchestrates pipeline agents A0–A6 for SAST triage."""
-
 import json
 import logging
 from pathlib import Path
 from typing import Any, Callable, TypeVar
+
+import logfire
 
 from triage.agent.agents import (
     create_assumptions_extractor_agent,
@@ -41,7 +41,6 @@ async def _run_step(
     step_name: str,
     fallback_factory: Callable[[Exception], T],
 ) -> T:
-    """Run one pipeline agent; on exception log and return fallback_factory(e)."""
     agent = agent_factory()
     try:
         result = await agent.run(user_prompt, deps=deps)
@@ -59,7 +58,9 @@ def _build_a0_prompt(finding: Vulnerability, repo_root: Path) -> str:
         f"sink_line: {finding.sink_line}, source_line: {finding.source_line}",
         f"Message: {finding.message}",
     ]
-    node = find_function_node_for_line(Path(finding.file or ""), finding.sink_line)
+    node = find_function_node_for_line(
+        repo_root / Path(finding.file or ""), finding.sink_line
+    )
     if node is not None:
         start_row, _ = node.start_point
         end_row, _ = node.end_point
@@ -74,7 +75,6 @@ def _build_a0_prompt(finding: Vulnerability, repo_root: Path) -> str:
 
 
 def is_evidence_sufficient(evidence_pack: EvidencePack, finding: Vulnerability) -> bool:
-    """Deterministic gate: True if we have primary_file and sink/function covered."""
     if not evidence_pack.primary_file:
         return False
     if not evidence_pack.snippets:
@@ -137,70 +137,71 @@ async def triage_finding(
     lsp: Any = None,
     model: str = "openai:gpt-5-mini",
 ) -> TriagePipelineReport:
-    """Run the full pipeline for one finding; returns final report."""
     repo_path = repo_path.resolve()
 
     # --- A0 Evidence Collector ---
-    evidence_pack = await _run_step(
-        lambda: create_evidence_collector_agent(model=model),
-        AgentDeps(repo_path=repo_path, vulnerability=finding, lsp=lsp),
-        _build_a0_prompt(finding, repo_path),
-        "A0 Evidence Collector",
-        lambda e: EvidencePack(
-            finding_id=finding.id,
-            primary_file=finding.file or "",
-            open_questions=[f"Error gathering evidence: {e}"],
-        ),
-    )
+    with logfire.span("a0_evidence_collector", finding_id=finding.id):
+        evidence_pack = await _run_step(
+            lambda: create_evidence_collector_agent(model=model),
+            AgentDeps(repo_path=repo_path, vulnerability=finding, lsp=lsp),
+            _build_a0_prompt(finding, repo_path),
+            "A0 Evidence Collector",
+            lambda e: EvidencePack(
+                finding_id=finding.id,
+                primary_file=finding.file or "",
+                open_questions=[f"Error gathering evidence: {e}"],
+            ),
+        )
 
     # --- Gating ---
     if not is_evidence_sufficient(evidence_pack, finding):
         return TriagePipelineReport(
             finding=finding,
             verdict=VerdictResult(
-                verdict=VerdictPipeline.INCONCLUSIVE,
+                verdict=VerdictPipeline.FALSE_POSITIVE,
                 reasoning="Insufficient static evidence",
                 confidence=0.0,
             ),
             evidence_pack=evidence_pack,
             open_questions=evidence_pack.open_questions or [],
         )
-
-    # --- A1 Source→Sink Tracer ---
-    trace = await _run_step(
-        lambda: create_source_sink_tracer_agent(model=model),
-        PipelineDeps(
-            repo_path=repo_path,
-            finding=finding,
-            lsp=lsp,
-            evidence_pack=evidence_pack,
-        ),
-        f"Finding:\n{_serialize_for_prompt(finding.model_dump())}\n\nEvidence Pack:\n{_serialize_for_prompt(evidence_pack)}",
-        "A1 Source-Sink Tracer",
-        lambda e: TraceResult(paths=[], gaps=[str(e)], confidence=0.0),
-    )
-
-    # Optional early stop: very low confidence and no paths
-    if trace.confidence < 0.3 and not trace.paths:
-        verdict = await _run_step(
-            lambda: create_verdict_agent(model=model),
+    with logfire.span("a1_source_sink_tracer", finding_id=finding.id):
+        # --- A1 Source→Sink Tracer ---
+        trace = await _run_step(
+            lambda: create_source_sink_tracer_agent(model=model),
             PipelineDeps(
                 repo_path=repo_path,
                 finding=finding,
                 lsp=lsp,
                 evidence_pack=evidence_pack,
-                trace=trace,
-                mitigations=None,
-                assumptions=None,
             ),
-            f"Finding:\n{_serialize_for_prompt(finding.model_dump())}\n\nEvidence Pack:\n{_serialize_for_prompt(evidence_pack)}\n\nTrace (low confidence):\n{_serialize_for_prompt(trace)}",
-            "A5 Verdict (early)",
-            lambda e: VerdictResult(
-                verdict=VerdictPipeline.INCONCLUSIVE,
-                reasoning=str(e),
-                confidence=0.0,
-            ),
+            f"Finding:\n{_serialize_for_prompt(finding.model_dump())}\n\nEvidence Pack:\n{_serialize_for_prompt(evidence_pack)}",
+            "A1 Source-Sink Tracer",
+            lambda e: TraceResult(paths=[], gaps=[str(e)], confidence=0.0),
         )
+
+    # Optional early stop: very low confidence and no paths
+    if trace.confidence < 0.3 and not trace.paths:
+        with logfire.span("a5_verdict", finding_id=finding.id):
+            verdict = await _run_step(
+                lambda: create_verdict_agent(model=model),
+                PipelineDeps(
+                    repo_path=repo_path,
+                    finding=finding,
+                    lsp=lsp,
+                    evidence_pack=evidence_pack,
+                    trace=trace,
+                    mitigations=None,
+                    assumptions=None,
+                ),
+                f"Finding:\n{_serialize_for_prompt(finding.model_dump())}\n\nEvidence Pack:\n{_serialize_for_prompt(evidence_pack)}\n\nTrace (low confidence):\n{_serialize_for_prompt(trace)}",
+                "A5 Verdict (early)",
+                lambda e: VerdictResult(
+                    verdict=VerdictPipeline.FALSE_POSITIVE,
+                    reasoning=str(e),
+                    confidence=0.0,
+                ),
+            )
         return build_final_report(
             finding=finding,
             verdict=verdict,
@@ -212,97 +213,99 @@ async def triage_finding(
             severity=None,
             open_questions=evidence_pack.open_questions or [],
         )
-
-    # --- A2 Sanitizers Analyzer ---
-    mitigations = await _run_step(
-        lambda: create_sanitizers_analyzer_agent(model=model),
-        PipelineDeps(
-            repo_path=repo_path,
-            finding=finding,
-            lsp=lsp,
-            evidence_pack=evidence_pack,
-            trace=trace,
-        ),
-        f"Finding:\n{_serialize_for_prompt(finding.model_dump())}\n\nEvidence Pack:\n{_serialize_for_prompt(evidence_pack)}\n\nTrace:\n{_serialize_for_prompt(trace)}",
-        "A2 Sanitizers Analyzer",
-        lambda e: MitigationsResult(),
-    )
-
-    # --- A3 Assumptions Extractor ---
-    assumptions = await _run_step(
-        lambda: create_assumptions_extractor_agent(model=model),
-        PipelineDeps(
-            repo_path=repo_path,
-            finding=finding,
-            lsp=lsp,
-            evidence_pack=evidence_pack,
-            trace=trace,
-            mitigations=mitigations,
-        ),
-        f"Finding:\n{_serialize_for_prompt(finding.model_dump())}\n\nEvidence Pack:\n{_serialize_for_prompt(evidence_pack)}\n\nTrace:\n{_serialize_for_prompt(trace)}\n\nMitigations:\n{_serialize_for_prompt(mitigations)}",
-        "A3 Assumptions Extractor",
-        lambda e: AssumptionsResult(),
-    )
-
-    # --- A5 Verdict ---
-    verdict = await _run_step(
-        lambda: create_verdict_agent(model=model),
-        PipelineDeps(
-            repo_path=repo_path,
-            finding=finding,
-            lsp=lsp,
-            evidence_pack=evidence_pack,
-            trace=trace,
-            mitigations=mitigations,
-            assumptions=assumptions,
-        ),
-        f"Finding:\n{_serialize_for_prompt(finding.model_dump())}\n\nEvidence Pack:\n{_serialize_for_prompt(evidence_pack)}\n\nTrace:\n{_serialize_for_prompt(trace)}\n\nMitigations:\n{_serialize_for_prompt(mitigations)}\n\nAssumptions:\n{_serialize_for_prompt(assumptions)}",
-        "A5 Verdict",
-        lambda e: VerdictResult(
-            verdict=VerdictPipeline.INCONCLUSIVE,
-            reasoning=str(e),
-            confidence=0.0,
-        ),
-    )
+    with logfire.span("a2_sanitizers_analyzer", finding_id=finding.id):
+        # --- A2 Sanitizers Analyzer ---
+        mitigations = await _run_step(
+            lambda: create_sanitizers_analyzer_agent(model=model),
+            PipelineDeps(
+                repo_path=repo_path,
+                finding=finding,
+                lsp=lsp,
+                evidence_pack=evidence_pack,
+                trace=trace,
+            ),
+            f"Finding:\n{_serialize_for_prompt(finding.model_dump())}\n\nEvidence Pack:\n{_serialize_for_prompt(evidence_pack)}\n\nTrace:\n{_serialize_for_prompt(trace)}",
+            "A2 Sanitizers Analyzer",
+            lambda e: MitigationsResult(),
+        )
+    with logfire.span("a3_assumptions_extractor", finding_id=finding.id):
+        # --- A3 Assumptions Extractor ---
+        assumptions = await _run_step(
+            lambda: create_assumptions_extractor_agent(model=model),
+            PipelineDeps(
+                repo_path=repo_path,
+                finding=finding,
+                lsp=lsp,
+                evidence_pack=evidence_pack,
+                trace=trace,
+                mitigations=mitigations,
+            ),
+            f"Finding:\n{_serialize_for_prompt(finding.model_dump())}\n\nEvidence Pack:\n{_serialize_for_prompt(evidence_pack)}\n\nTrace:\n{_serialize_for_prompt(trace)}\n\nMitigations:\n{_serialize_for_prompt(mitigations)}",
+            "A3 Assumptions Extractor",
+            lambda e: AssumptionsResult(),
+        )
+    with logfire.span("a5_verdict", finding_id=finding.id):
+        # --- A5 Verdict ---
+        verdict = await _run_step(
+            lambda: create_verdict_agent(model=model),
+            PipelineDeps(
+                repo_path=repo_path,
+                finding=finding,
+                lsp=lsp,
+                evidence_pack=evidence_pack,
+                trace=trace,
+                mitigations=mitigations,
+                assumptions=assumptions,
+            ),
+            f"Finding:\n{_serialize_for_prompt(finding.model_dump())}\n\nEvidence Pack:\n{_serialize_for_prompt(evidence_pack)}\n\nTrace:\n{_serialize_for_prompt(trace)}\n\nMitigations:\n{_serialize_for_prompt(mitigations)}\n\nAssumptions:\n{_serialize_for_prompt(assumptions)}",
+            "A5 Verdict",
+            lambda e: VerdictResult(
+                verdict=VerdictPipeline.FALSE_POSITIVE,
+                reasoning=str(e),
+                confidence=0.0,
+            ),
+        )
 
     counterexample: CounterexampleResult | None = None
     severity: SeverityResult | None = None
 
     if verdict.verdict == VerdictPipeline.FALSE_POSITIVE:
-        counterexample = await _run_step(
-            lambda: create_counterexample_builder_agent(model=model),
-            PipelineDeps(
-                repo_path=repo_path,
-                finding=finding,
-                lsp=lsp,
-                evidence_pack=evidence_pack,
-                trace=trace,
-                mitigations=mitigations,
-                assumptions=assumptions,
-                verdict=verdict,
-            ),
-            f"Finding:\n{_serialize_for_prompt(finding.model_dump())}\n\nEvidence Pack:\n{_serialize_for_prompt(evidence_pack)}\n\nTrace:\n{_serialize_for_prompt(trace)}\n\nMitigations:\n{_serialize_for_prompt(mitigations)}\n\nAssumptions:\n{_serialize_for_prompt(assumptions)}\n\nVerdict (FP):\n{_serialize_for_prompt(verdict)}",
-            "A4 Counterexample Builder",
-            lambda e: None,
-        )
+        with logfire.span("a4_counterexample_builder", finding_id=finding.id):
+            counterexample = await _run_step(
+                lambda: create_counterexample_builder_agent(model=model),
+                PipelineDeps(
+                    repo_path=repo_path,
+                    finding=finding,
+                    lsp=lsp,
+                    evidence_pack=evidence_pack,
+                    trace=trace,
+                    mitigations=mitigations,
+                    assumptions=assumptions,
+                    verdict=verdict,
+                ),
+                f"Finding:\n{_serialize_for_prompt(finding.model_dump())}\n\nEvidence Pack:\n{_serialize_for_prompt(evidence_pack)}\n\nTrace:\n{_serialize_for_prompt(trace)}\n\nMitigations:\n{_serialize_for_prompt(mitigations)}\n\nAssumptions:\n{_serialize_for_prompt(assumptions)}\n\nVerdict (FP):\n{_serialize_for_prompt(verdict)}",
+                "A4 Counterexample Builder",
+                lambda e: None,
+            )
 
     elif verdict.verdict == VerdictPipeline.TRUE_VULNERABILITY:
-        severity = await _run_step(
-            lambda: create_severity_rater_agent(model=model),
-            PipelineDeps(
-                repo_path=repo_path,
-                finding=finding,
-                lsp=lsp,
-                evidence_pack=evidence_pack,
-                trace=trace,
-                mitigations=mitigations,
-                assumptions=assumptions,
-                verdict=verdict,
-            ),
-            f"Finding:\n{_serialize_for_prompt(finding.model_dump())}\n\nVerdict (True Vulnerability):\n{_serialize_for_prompt(verdict)}\n\nEvidence Pack:\n{_serialize_for_prompt(evidence_pack)}\n\nAssumptions:\n{_serialize_for_prompt(assumptions)}",
-            "A6 Severity Rater",
-            lambda e: None,
-        )
+        with logfire.span("a6_severity_rater", finding_id=finding.id):
+            severity = await _run_step(
+                lambda: create_severity_rater_agent(model=model),
+                PipelineDeps(
+                    repo_path=repo_path,
+                    finding=finding,
+                    lsp=lsp,
+                    evidence_pack=evidence_pack,
+                    trace=trace,
+                    mitigations=mitigations,
+                    assumptions=assumptions,
+                    verdict=verdict,
+                ),
+                f"Finding:\n{_serialize_for_prompt(finding.model_dump())}\n\nVerdict (True Vulnerability):\n{_serialize_for_prompt(verdict)}\n\nEvidence Pack:\n{_serialize_for_prompt(evidence_pack)}\n\nAssumptions:\n{_serialize_for_prompt(assumptions)}",
+                "A6 Severity Rater",
+                lambda e: None,
+            )
 
     return build_final_report(
         finding=finding,
@@ -328,7 +331,6 @@ def build_final_report(
     severity: SeverityResult | None = None,
     open_questions: list[str] | None = None,
 ) -> TriagePipelineReport:
-    """Assemble the final pipeline report."""
     return TriagePipelineReport(
         finding=finding,
         verdict=verdict,

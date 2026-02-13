@@ -47,7 +47,8 @@ async def _run_pipeline_findings(
         idx: int, vuln: Vulnerability
     ) -> tuple[int, TriagePipelineReport]:
         async with semaphore:
-            report = await triage_finding(vuln, repo_path, lsp=lsp)
+            with logfire.span("triage_finding", finding_id=vuln.id):
+                report = await triage_finding(vuln, repo_path, lsp=lsp)
         return idx, report
 
     tasks = [run_and_store(i, v) for i, v in enumerate(vulnerabilities)]
@@ -85,7 +86,7 @@ def cli() -> None:
 @click.option(
     "--concurrency",
     type=int,
-    default=5,
+    default=10,
     help="Max concurrent pipeline runs per finding (default 1; use 1 when LSP is enabled).",
 )
 @click.option(
@@ -101,7 +102,6 @@ def run_pipeline(
     concurrency: int,
     no_enrich: bool,
 ) -> None:
-    """Run the multi-agent pipeline (A0–A6) for each finding."""
     repo_path = repo_path.resolve()
     findings = load_findings(findings_path.resolve())
     findings_list = findings.vulnerabilities
@@ -183,7 +183,6 @@ def convert_report(
     repo_path: Path | None,
     enrich: bool,
 ) -> None:
-    """Convert an existing pipeline JSON report to Markdown and HTML."""
     input_path = input_path.resolve()
     data = json.loads(input_path.read_text(encoding="utf-8"))
     report = PipelineReport.model_validate(data)
@@ -234,14 +233,11 @@ def convert_report(
     help="Drop and re-index if collection already exists.",
 )
 def build_owasp_db(docs_path: Path | None, db_path: Path | None, force: bool) -> None:
-    """Build the local OWASP Top 10 2025 vector database from markdown docs."""
     from triage.owasp.indexer import index_owasp_docs
 
     try:
         count = asyncio.run(
-            index_owasp_docs(
-                docs_path=docs_path, db_path=db_path, force_reindex=force
-            )
+            index_owasp_docs(docs_path=docs_path, db_path=db_path, force_reindex=force)
         )
         click.echo(f"Indexed {count} OWASP documents.")
     except FileNotFoundError as e:

@@ -219,13 +219,12 @@ class AssumptionsResult(BaseModel):
 class VerdictPipeline(str, Enum):
     TRUE_VULNERABILITY = "TRUE_VULNERABILITY"
     FALSE_POSITIVE = "FALSE_POSITIVE"
-    INCONCLUSIVE = "INCONCLUSIVE"
 
 
 class VerdictResult(BaseModel):
     verdict: VerdictPipeline = Field(
         ...,
-        description="Verdict: TRUE_VULNERABILITY, FALSE_POSITIVE or INCONCLUSIVE.",
+        description="Verdict: TRUE_VULNERABILITY, FALSE_POSITIVE.",
     )
     reasoning: str = Field(
         default="",

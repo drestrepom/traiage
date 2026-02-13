@@ -1,105 +1,90 @@
+import json
 import os
+import shutil
 from pathlib import Path
 from typing import Any
 
-from pymilvus import MilvusClient
+import numpy as np
 
 
 class OWASPStore:
-    """Wrapper around MilvusClient for OWASP Top 10 vector database."""
+    _INDEX_FILE = "index.json"
 
-    COLLECTION_NAME = "owasp_top10"
-    EMBEDDING_DIM = 1536
-    METRIC_TYPE = "COSINE"
-
-    def __init__(self, db_path: Path | str | None = None) -> None:
-        """Initialize the OWASP store with a local Milvus Lite database.
-
-        Args:
-            db_path: Path to the database file. If None, uses $OWASP_DB_PATH or
-                    ~/.local/share/triage/owasp.db
-        """
-        if db_path is None:
-            db_path = os.getenv(
-                "OWASP_DB_PATH",
-                str(Path.home() / ".local" / "share" / "triage" / "owasp.db"),
+    def __init__(self, store_path: Path | str | None = None) -> None:
+        if store_path is None:
+            base = Path(
+                os.getenv(
+                    "OWASP_DB_PATH",
+                    str(Path.home() / ".local" / "share" / "triage"),
+                )
             )
-        self.db_path = Path(db_path)
-        self.client = MilvusClient(str(self.db_path))
+        else:
+            base = Path(store_path).parent
+        self._workspace = base / "owasp_vectordb"
+        self._workspace.mkdir(parents=True, exist_ok=True)
+        self._index_path = self._workspace / self._INDEX_FILE
+        self._records: list[dict[str, Any]] = []
+        self._embeddings: np.ndarray | None = None
+        self._load()
 
-    def ensure_collection(self) -> None:
-        """Ensure the owasp_top10 collection exists."""
-        if self.client.has_collection(self.COLLECTION_NAME):
+    def _load(self) -> None:
+        if not self._index_path.exists():
             return
+        try:
+            with self._index_path.open() as fh:
+                data = json.load(fh)
+            self._records = data
+            if self._records:
+                self._embeddings = np.array(
+                    [r["vector"] for r in self._records], dtype=np.float32
+                )
+        except Exception:
+            self._records = []
+            self._embeddings = None
 
-        self.client.create_collection(
-            collection_name=self.COLLECTION_NAME,
-            dimension=self.EMBEDDING_DIM,
-            metric_type=self.METRIC_TYPE,
-            auto_id=True,
-            enable_dynamic_field=True,
-        )
+    def _save(self) -> None:
+        with self._index_path.open("w") as fh:
+            json.dump(self._records, fh)
 
     def drop_collection(self) -> None:
-        """Drop the owasp_top10 collection if it exists."""
-        if self.client.has_collection(self.COLLECTION_NAME):
-            self.client.drop_collection(self.COLLECTION_NAME)
+        shutil.rmtree(self._workspace, ignore_errors=True)
+        self._workspace.mkdir(parents=True, exist_ok=True)
+        self._index_path = self._workspace / self._INDEX_FILE
+        self._records = []
+        self._embeddings = None
 
     def insert(self, records: list[dict[str, Any]]) -> int:
-        """Insert records into the collection.
-
-        Args:
-            records: List of dicts with keys:
-                    - vector: list[float] (embedding)
-                    - text: str (content)
-                    - filename: str (source filename)
-                    - owasp_url: str (OWASP reference URL)
-
-        Returns:
-            Number of records inserted.
-        """
         if not records:
             return 0
-
-        self.ensure_collection()
-        result = self.client.insert(self.COLLECTION_NAME, records)
-        return len(result.get("insert_count", 0)) if result else 0
-
-    def search(
-        self, vector: list[float], limit: int = 3
-    ) -> list[dict[str, Any]]:
-        """Search for similar documents.
-
-        Args:
-            vector: Query embedding (list of floats).
-            limit: Number of results to return.
-
-        Returns:
-            List of dicts with fields: text, filename, owasp_url, distance.
-            Empty list if collection doesn't exist.
-        """
-        if not self.client.has_collection(self.COLLECTION_NAME):
-            return []
-
-        results = self.client.search(
-            collection_name=self.COLLECTION_NAME,
-            data=[vector],
-            limit=limit,
-            output_fields=["text", "filename", "owasp_url"],
+        self._records.extend(records)
+        self._embeddings = np.array(
+            [r["vector"] for r in self._records], dtype=np.float32
         )
+        self._save()
+        return len(records)
 
-        if not results or not results[0]:
+    def search(self, vector: list[float], limit: int = 3) -> list[dict[str, Any]]:
+        if self._embeddings is None or len(self._records) == 0:
             return []
-
-        output = []
-        for hit in results[0]:
-            entity = hit.get("entity", {})
-            output.append(
+        try:
+            q = np.array(vector, dtype=np.float32)
+            q_norm = np.linalg.norm(q)
+            if q_norm == 0:
+                return []
+            norms = np.linalg.norm(self._embeddings, axis=1)
+            dots = self._embeddings @ q
+            with np.errstate(divide="ignore", invalid="ignore"):
+                sims = np.where(norms > 0, dots / (norms * q_norm), 0.0)
+            top_k = int(min(limit, len(self._records)))
+            indices = np.argsort(sims)[::-1][:top_k]
+            return [
                 {
-                    "text": entity.get("text", ""),
-                    "filename": entity.get("filename", ""),
-                    "owasp_url": entity.get("owasp_url", ""),
-                    "distance": hit.get("distance", 0.0),
+                    "text": self._records[i]["text"],
+                    "filename": self._records[i]["filename"],
+                    "owasp_url": self._records[i]["owasp_url"],
+                    "distance": float(sims[i]),
                 }
-            )
-        return output
+                for i in indices
+            ]
+        except Exception:
+            return []
