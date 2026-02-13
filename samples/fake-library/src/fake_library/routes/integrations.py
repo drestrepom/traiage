@@ -1,6 +1,6 @@
 import requests as http_requests
 from flask import Blueprint, request, jsonify
-from fake_library.security import ALLOWED_FETCH_HOSTS, GITHUB_USER_RE, URL_CATALOG, validate_url
+from fake_library.security import GITHUB_USER_RE, URL_CATALOG, validate_url
 
 integrations_bp = Blueprint("integrations", __name__, url_prefix="/integrations")
 

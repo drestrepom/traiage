@@ -1,0 +1,36 @@
+{
+    "vulnerabilities": [
+        {
+            "id": "vuln_01",
+            "type": "SQL Injection",
+            "sink_line": 17,
+            "source_line": 44,
+            "message": "The application is vulnerable to SQL Injection in the login function",
+            "file": "sample.py"
+        },
+        {
+            "id": "vuln_02",
+            "type": "SQL Injection",
+            "sink_line": 27,
+            "source_line": 44,
+            "message": "The application is vulnerable to SQL Injection in the new_login function",
+            "file": "sample.py"
+        },
+        {
+            "id": "vuln_03",
+            "type": "SSRF",
+            "sink_line": 34,
+            "source_line": 44,
+            "message": "The application is vulnerable to SSRF in the check_username function",
+            "file": "sample.py"
+        },
+        {
+            "id": "vuln_04",
+            "type": "Command Injection",
+            "sink_line": 39,
+            "source_line": 44,
+            "message": "The application is vulnerable to Command Injection in the is_online_username function",
+            "file": "sample.py"
+        }
+    ]
+}
