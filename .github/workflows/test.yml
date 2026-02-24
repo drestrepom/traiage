@@ -1,0 +1,23 @@
+name: Test
+
+on:
+  push:
+    branches: [main, melo]
+  pull_request:
+    branches: [main, melo]
+
+jobs:
+  test:
+    name: Run tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: DeterminateSystems/nix-installer-action@v16
+
+      - name: Run tests
+        run: nix run .#test
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}

@@ -73,7 +73,7 @@ async def test_lsp_go_to_definition_accepts_absolute_and_returns_relative() -> N
     async with start_lsp_client(SAMPLE1_PATH) as lsp:
         ctx = _ctx(SAMPLE1_PATH, lsp=lsp)
         result = await lsp_go_to_definition(
-            ctx, "sample.py", line=12, symbol_name="login"
+            ctx, "sample.py", line=46, symbol_name="login"
         )
 
     assert "Definiciones encontradas" in result

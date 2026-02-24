@@ -116,6 +116,23 @@
               }
             }/bin/lint";
           };
+          apps.test = {
+            type = "app";
+            program = "${
+              pkgs.writeShellApplication {
+                name = "test";
+                runtimeInputs = [ venv ];
+                text = ''
+                  set -e
+                  echo "Running unit tests..."
+                  ${venv}/bin/pytest tests/unit/ -v
+                  echo "Running integration & eval tests..."
+                  ${venv}/bin/pytest tests/integration/ tests/evals/ -v
+                  echo "All tests passed!"
+                '';
+              }
+            }/bin/test";
+          };
           devShells.default = pkgs.mkShell {
             inherit (venv) buildInputs;
             inputsFrom = [ venv ];
