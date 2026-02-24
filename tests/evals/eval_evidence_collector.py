@@ -173,6 +173,6 @@ async def test_evidence_collector_eval_quality() -> None:
     for case_result in report.cases:
         for assertion_name, assertion in case_result.assertions.items():
             assert assertion.value, (
-                f"LLM judge failed for case '{case_result.case_id}' "
+                f"LLM judge failed for case '{case_result.trace_id}' "
                 f"evaluator '{assertion_name}': {assertion.reason}"
             )

@@ -35,7 +35,10 @@ async def lsp_go_to_definition(
     if node is None:
         return "No results found for go_to_definition"
     char0 = node.start_point.column
-    lsp = get_lsp(ctx)
+    try:
+        lsp = get_lsp(ctx)
+    except RuntimeError as e:
+        return f"LSP unavailable: {e}. Use read_file or grep to collect evidence instead."
 
     output_lines: list[str] = []
     results = await lsp.request_definition(
