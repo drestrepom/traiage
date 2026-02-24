@@ -1,0 +1,21 @@
+name: Lint
+
+on:
+  push:
+    branches: [main, melo]
+  pull_request:
+    branches: [main, melo]
+
+jobs:
+  lint:
+    name: Run linter
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: DeterminateSystems/nix-installer-action@v16
+
+      - name: Run lint
+        run: nix run .#lint

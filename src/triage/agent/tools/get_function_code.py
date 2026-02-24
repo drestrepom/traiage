@@ -29,7 +29,7 @@ def get_function_code(
         return f"File not found: {relative_path}"
     node = find_function_node_for_line(target, line_number)
     if node is None:
-        return f"No function found at line {line_number} in {relative_path}\n{enumerate_nodes_in_line(node)}"
+        return f"No function found at line {line_number} in {relative_path}"
     return enumerate_nodes_in_line(node)
 
 
