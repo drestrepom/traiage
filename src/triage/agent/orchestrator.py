@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any, Callable, TypeVar
 
 import logfire
+from lsp_client import PyreflyClient
 
 from triage.agent.agents import (
     create_assumptions_extractor_agent,
@@ -21,8 +22,8 @@ from triage.models.pipeline import (
     EvidencePack,
     MitigationsResult,
     SeverityResult,
-    TriagePipelineReport,
     TraceResult,
+    TriagePipelineReport,
     VerdictPipeline,
     VerdictResult,
 )
@@ -135,7 +136,7 @@ def _serialize_for_prompt(obj: Any) -> str:
 async def triage_finding(
     finding: Vulnerability,
     repo_path: Path,
-    lsp: Any = None,
+    lsp: PyreflyClient | None = None,
     model: str = "openai:gpt-5-mini",
 ) -> TriagePipelineReport:
     repo_path = repo_path.resolve()

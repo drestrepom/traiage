@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
 
+from lsp_client import PyreflyClient
 
 from triage.models.pipeline import (
     AssumptionsResult,
@@ -16,7 +16,7 @@ from triage.models.vulnerability import Vulnerability
 @dataclass
 class BaseDeps:
     repo_path: Path
-    lsp: Any
+    lsp: PyreflyClient
 
 
 @dataclass

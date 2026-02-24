@@ -59,10 +59,7 @@ def format_document_symbols_markdown(
 
 async def lsp_document_symbol(ctx: RunContext[BaseDeps], file_path: str) -> str:
     abs_path_obj = abs_path(ctx, file_path)
-    try:
-        lsp = get_lsp(ctx)
-    except RuntimeError as e:
-        return f"LSP unavailable: {e}. Use read_file or grep to collect evidence instead."
+    lsp = get_lsp(ctx)
 
     last_exc: JsonRpcResponseError | None = None
     for delay in (0.0, 0.5, 1.0):

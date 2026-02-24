@@ -22,6 +22,7 @@ from pydantic_evals.evaluators import LLMJudge
 from triage.agent.agents import create_evidence_collector_agent
 from triage.agent.deps import AgentDeps
 from triage.agent.orchestrator import _build_a0_prompt
+from triage.agent.tools import start_lsp_client
 from triage.models.pipeline import EvidencePack
 from triage.models.vulnerability import Vulnerability
 
@@ -63,11 +64,12 @@ _VULNS: dict[str, Vulnerability] = {
 async def _run_evidence_collector(inputs: dict[str, object]) -> str:
     """Run A0 and return a JSON-serializable summary of the EvidencePack."""
     vuln = inputs["vuln"]
-    deps = AgentDeps(repo_path=SAMPLE1_PATH, lsp=None, vulnerability=vuln)  # type: ignore[arg-type]
     prompt = _build_a0_prompt(vuln, SAMPLE1_PATH)  # type: ignore[arg-type]
 
     agent = create_evidence_collector_agent()
-    result = await agent.run(prompt, deps=deps)
+    async with start_lsp_client(SAMPLE1_PATH) as lsp:
+        deps = AgentDeps(repo_path=SAMPLE1_PATH, lsp=lsp, vulnerability=vuln)  # type: ignore[arg-type]
+        result = await agent.run(prompt, deps=deps)
     pack: EvidencePack = result.output
 
     # Serialize to a compact JSON string for the judge to evaluate

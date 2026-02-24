@@ -3,7 +3,6 @@ import json
 import logging
 import sys
 from pathlib import Path
-from typing import Any
 
 import click
 
@@ -36,23 +35,23 @@ async def _run_pipeline_findings(
     repo_path: Path,
     vulnerabilities: list[Vulnerability],
     concurrency: int,
-    lsp: Any,
 ) -> list[TriagePipelineReport]:
-    semaphore = asyncio.Semaphore(concurrency)
-    results: list[TriagePipelineReport | None] = [None] * len(vulnerabilities)
+    async with start_lsp_client(repo_path) as lsp:
+        semaphore = asyncio.Semaphore(concurrency)
+        results: list[TriagePipelineReport | None] = [None] * len(vulnerabilities)
 
-    async def run_and_store(
-        idx: int, vuln: Vulnerability
-    ) -> tuple[int, TriagePipelineReport]:
-        async with semaphore:
-            with logfire.span("triage_finding", finding_id=vuln.id):
-                report = await triage_finding(vuln, repo_path, lsp=lsp)
-        return idx, report
+        async def run_and_store(
+            idx: int, vuln: Vulnerability
+        ) -> tuple[int, TriagePipelineReport]:
+            async with semaphore:
+                with logfire.span("triage_finding", finding_id=vuln.id):
+                    report = await triage_finding(vuln, repo_path, lsp=lsp)
+            return idx, report
 
-    tasks = [run_and_store(i, v) for i, v in enumerate(vulnerabilities)]
-    for coro in asyncio.as_completed(tasks):
-        idx, report = await coro
-        results[idx] = report
+        tasks = [run_and_store(i, v) for i, v in enumerate(vulnerabilities)]
+        for coro in asyncio.as_completed(tasks):
+            idx, report = await coro
+            results[idx] = report
     return results  # type: ignore[return-value]
 
 
@@ -104,16 +103,12 @@ def run_pipeline(
     findings = load_findings(findings_path.resolve())
     findings_list = findings.vulnerabilities
 
-    async def _run_with_lsp() -> list[TriagePipelineReport]:
-        async with start_lsp_client(repo_path) as lsp:
-            return await _run_pipeline_findings(
-                repo_path, findings_list, concurrency, lsp=lsp
-            )
-
     if not findings_list:
         pipeline_report = PipelineReport(reports=[])
     else:
-        results = asyncio.run(_run_with_lsp())
+        results = asyncio.run(
+            _run_pipeline_findings(repo_path, findings_list, concurrency)
+        )
         pipeline_report = PipelineReport(reports=results)
 
     out_base = output or Path("report")

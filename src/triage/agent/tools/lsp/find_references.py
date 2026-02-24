@@ -20,10 +20,7 @@ async def lsp_find_references(
     abs_path_obj = abs_path(ctx, file_path)
     norm_line = max(line, 1)
     char0 = preferred_character_for_line(abs_path_obj, norm_line)
-    try:
-        lsp = get_lsp(ctx)
-    except RuntimeError as e:
-        return f"LSP unavailable: {e}. Use read_file or grep to collect evidence instead."
+    lsp = get_lsp(ctx)
     try:
         result = await lsp.request_references(
             file_path=abs_path_obj,

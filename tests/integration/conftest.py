@@ -21,6 +21,7 @@ from pathlib import Path
 import pytest
 
 from triage.agent.deps import AgentDeps, PipelineDeps
+from triage.agent.tools import start_lsp_client
 from triage.models.pipeline import (
     Assumption,
     AssumptionCategory,
@@ -51,6 +52,12 @@ SAMPLE1_PATH = Path(__file__).resolve().parent.parent.parent / "samples" / "samp
 def require_openai_key() -> None:  # type: ignore[return]
     if not os.environ.get("OPENAI_API_KEY"):
         pytest.skip("OPENAI_API_KEY not set — skipping integration tests")
+
+
+@pytest.fixture(scope="session")
+async def lsp_session():  # type: ignore[return]
+    async with start_lsp_client(SAMPLE1_PATH) as lsp:
+        yield lsp
 
 
 # ---------------------------------------------------------------------------
@@ -120,18 +127,18 @@ def vuln_04() -> Vulnerability:
 
 
 @pytest.fixture(scope="session")
-def agent_deps_01(vuln_01: Vulnerability) -> AgentDeps:
-    return AgentDeps(repo_path=SAMPLE1_PATH, lsp=None, vulnerability=vuln_01)
+def agent_deps_01(vuln_01: Vulnerability, lsp_session) -> AgentDeps:  # type: ignore[no-untyped-def]
+    return AgentDeps(repo_path=SAMPLE1_PATH, lsp=lsp_session, vulnerability=vuln_01)
 
 
 @pytest.fixture(scope="session")
-def agent_deps_02(vuln_02: Vulnerability) -> AgentDeps:
-    return AgentDeps(repo_path=SAMPLE1_PATH, lsp=None, vulnerability=vuln_02)
+def agent_deps_02(vuln_02: Vulnerability, lsp_session) -> AgentDeps:  # type: ignore[no-untyped-def]
+    return AgentDeps(repo_path=SAMPLE1_PATH, lsp=lsp_session, vulnerability=vuln_02)
 
 
 @pytest.fixture(scope="session")
-def agent_deps_04(vuln_04: Vulnerability) -> AgentDeps:
-    return AgentDeps(repo_path=SAMPLE1_PATH, lsp=None, vulnerability=vuln_04)
+def agent_deps_04(vuln_04: Vulnerability, lsp_session) -> AgentDeps:  # type: ignore[no-untyped-def]
+    return AgentDeps(repo_path=SAMPLE1_PATH, lsp=lsp_session, vulnerability=vuln_04)
 
 
 # ---------------------------------------------------------------------------
@@ -693,11 +700,12 @@ def pipeline_deps_for_verdict_01(
     trace_result_01: TraceResult,
     mitigations_result_01: MitigationsResult,
     assumptions_result_01: AssumptionsResult,
+    lsp_session,  # type: ignore[no-untyped-def]
 ) -> PipelineDeps:
     """Full PipelineDeps for vuln_01 verdict — expected TRUE_VULNERABILITY."""
     return PipelineDeps(
         repo_path=SAMPLE1_PATH,
-        lsp=None,
+        lsp=lsp_session,
         finding=vuln_01,
         evidence_pack=evidence_pack_01,
         trace=trace_result_01,
@@ -713,11 +721,12 @@ def pipeline_deps_for_verdict_02(
     trace_result_02: TraceResult,
     mitigations_result_02: MitigationsResult,
     assumptions_result_02: AssumptionsResult,
+    lsp_session,  # type: ignore[no-untyped-def]
 ) -> PipelineDeps:
     """Full PipelineDeps for vuln_02 verdict — expected FALSE_POSITIVE."""
     return PipelineDeps(
         repo_path=SAMPLE1_PATH,
-        lsp=None,
+        lsp=lsp_session,
         finding=vuln_02,
         evidence_pack=evidence_pack_02,
         trace=trace_result_02,
@@ -733,11 +742,12 @@ def pipeline_deps_for_verdict_03(
     trace_result_03: TraceResult,
     mitigations_result_03: MitigationsResult,
     assumptions_result_03: AssumptionsResult,
+    lsp_session,  # type: ignore[no-untyped-def]
 ) -> PipelineDeps:
     """Full PipelineDeps for vuln_03 verdict — expected FALSE_POSITIVE (SSRF hardcoded host)."""
     return PipelineDeps(
         repo_path=SAMPLE1_PATH,
-        lsp=None,
+        lsp=lsp_session,
         finding=vuln_03,
         evidence_pack=evidence_pack_03,
         trace=trace_result_03,
@@ -753,11 +763,12 @@ def pipeline_deps_for_verdict_04(
     trace_result_04: TraceResult,
     mitigations_result_04: MitigationsResult,
     assumptions_result_04: AssumptionsResult,
+    lsp_session,  # type: ignore[no-untyped-def]
 ) -> PipelineDeps:
     """Full PipelineDeps for vuln_04 verdict — expected TRUE_VULNERABILITY."""
     return PipelineDeps(
         repo_path=SAMPLE1_PATH,
-        lsp=None,
+        lsp=lsp_session,
         finding=vuln_04,
         evidence_pack=evidence_pack_04,
         trace=trace_result_04,
@@ -775,11 +786,12 @@ def pipeline_deps_for_verdict_04(
 def pipeline_deps_a1_01(
     vuln_01: Vulnerability,
     evidence_pack_01: EvidencePack,
+    lsp_session,  # type: ignore[no-untyped-def]
 ) -> PipelineDeps:
     """PipelineDeps for A1 (source→sink tracer) with vuln_01 evidence."""
     return PipelineDeps(
         repo_path=SAMPLE1_PATH,
-        lsp=None,
+        lsp=lsp_session,
         finding=vuln_01,
         evidence_pack=evidence_pack_01,
     )
@@ -789,11 +801,12 @@ def pipeline_deps_a1_01(
 def pipeline_deps_a1_02(
     vuln_02: Vulnerability,
     evidence_pack_02: EvidencePack,
+    lsp_session,  # type: ignore[no-untyped-def]
 ) -> PipelineDeps:
     """PipelineDeps for A1 with vuln_02 evidence."""
     return PipelineDeps(
         repo_path=SAMPLE1_PATH,
-        lsp=None,
+        lsp=lsp_session,
         finding=vuln_02,
         evidence_pack=evidence_pack_02,
     )
@@ -804,11 +817,12 @@ def pipeline_deps_a2_01(
     vuln_01: Vulnerability,
     evidence_pack_01: EvidencePack,
     trace_result_01: TraceResult,
+    lsp_session,  # type: ignore[no-untyped-def]
 ) -> PipelineDeps:
     """PipelineDeps for A2 (sanitizers analyzer) with vuln_01."""
     return PipelineDeps(
         repo_path=SAMPLE1_PATH,
-        lsp=None,
+        lsp=lsp_session,
         finding=vuln_01,
         evidence_pack=evidence_pack_01,
         trace=trace_result_01,
@@ -820,11 +834,12 @@ def pipeline_deps_a2_02(
     vuln_02: Vulnerability,
     evidence_pack_02: EvidencePack,
     trace_result_02: TraceResult,
+    lsp_session,  # type: ignore[no-untyped-def]
 ) -> PipelineDeps:
     """PipelineDeps for A2 with vuln_02."""
     return PipelineDeps(
         repo_path=SAMPLE1_PATH,
-        lsp=None,
+        lsp=lsp_session,
         finding=vuln_02,
         evidence_pack=evidence_pack_02,
         trace=trace_result_02,
@@ -837,11 +852,12 @@ def pipeline_deps_a3_01(
     evidence_pack_01: EvidencePack,
     trace_result_01: TraceResult,
     mitigations_result_01: MitigationsResult,
+    lsp_session,  # type: ignore[no-untyped-def]
 ) -> PipelineDeps:
     """PipelineDeps for A3 (assumptions extractor) with vuln_01."""
     return PipelineDeps(
         repo_path=SAMPLE1_PATH,
-        lsp=None,
+        lsp=lsp_session,
         finding=vuln_01,
         evidence_pack=evidence_pack_01,
         trace=trace_result_01,

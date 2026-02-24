@@ -25,9 +25,9 @@ SAMPLE1_PATH = Path(__file__).resolve().parent.parent.parent / "samples" / "samp
 # ---------------------------------------------------------------------------
 
 
-async def test_pipeline_vuln01_sqli_login(vuln_01: Vulnerability) -> None:
+async def test_pipeline_vuln01_sqli_login(vuln_01: Vulnerability, lsp_session) -> None:  # type: ignore[no-untyped-def]
     """Full pipeline must classify the f-string SQL injection as TRUE_VULNERABILITY."""
-    report = await triage_finding(vuln_01, SAMPLE1_PATH)
+    report = await triage_finding(vuln_01, SAMPLE1_PATH, lsp=lsp_session)
 
     assert isinstance(report, TriagePipelineReport)
     assert report.verdict.verdict == VerdictPipeline.TRUE_VULNERABILITY, (
@@ -44,9 +44,9 @@ async def test_pipeline_vuln01_sqli_login(vuln_01: Vulnerability) -> None:
     )
 
 
-async def test_pipeline_vuln02_sqli_new_login(vuln_02: Vulnerability) -> None:
+async def test_pipeline_vuln02_sqli_new_login(vuln_02: Vulnerability, lsp_session) -> None:  # type: ignore[no-untyped-def]
     """Full pipeline must classify the parameterized query as FALSE_POSITIVE."""
-    report = await triage_finding(vuln_02, SAMPLE1_PATH)
+    report = await triage_finding(vuln_02, SAMPLE1_PATH, lsp=lsp_session)
 
     assert isinstance(report, TriagePipelineReport)
     assert report.verdict.verdict == VerdictPipeline.FALSE_POSITIVE, (
@@ -63,9 +63,9 @@ async def test_pipeline_vuln02_sqli_new_login(vuln_02: Vulnerability) -> None:
     )
 
 
-async def test_pipeline_vuln03_ssrf(vuln_03: Vulnerability) -> None:
+async def test_pipeline_vuln03_ssrf(vuln_03: Vulnerability, lsp_session) -> None:  # type: ignore[no-untyped-def]
     """Full pipeline must classify the hardcoded-host SSRF as FALSE_POSITIVE."""
-    report = await triage_finding(vuln_03, SAMPLE1_PATH)
+    report = await triage_finding(vuln_03, SAMPLE1_PATH, lsp=lsp_session)
 
     assert isinstance(report, TriagePipelineReport)
     assert report.verdict.verdict == VerdictPipeline.FALSE_POSITIVE, (
@@ -76,9 +76,9 @@ async def test_pipeline_vuln03_ssrf(vuln_03: Vulnerability) -> None:
     assert report.evidence_pack is not None
 
 
-async def test_pipeline_vuln04_cmdi(vuln_04: Vulnerability) -> None:
+async def test_pipeline_vuln04_cmdi(vuln_04: Vulnerability, lsp_session) -> None:  # type: ignore[no-untyped-def]
     """Full pipeline must classify the os.system command injection as TRUE_VULNERABILITY."""
-    report = await triage_finding(vuln_04, SAMPLE1_PATH)
+    report = await triage_finding(vuln_04, SAMPLE1_PATH, lsp=lsp_session)
 
     assert isinstance(report, TriagePipelineReport)
     assert report.verdict.verdict == VerdictPipeline.TRUE_VULNERABILITY, (

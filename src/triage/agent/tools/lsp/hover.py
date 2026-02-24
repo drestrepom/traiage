@@ -19,10 +19,7 @@ async def lsp_hover(
     abs_path_obj = abs_path(ctx, file_path)
     _0_based_line = line - 1
     ts_char0 = preferred_character_for_line(abs_path_obj, line)
-    try:
-        lsp = get_lsp(ctx)
-    except RuntimeError as e:
-        return f"LSP unavailable: {e}. Use read_file or grep to collect evidence instead."
+    lsp = get_lsp(ctx)
 
     result = await lsp.request_hover(
         file_path=abs_path_obj,

@@ -63,9 +63,8 @@ async def test_lsp_document_symbol_escapes_repo_raises(tmp_path: Path) -> None:
 async def test_lsp_requires_initialized_lsp(tmp_path: Path) -> None:
     (tmp_path / "a.py").write_text("x = 1\n", encoding="utf-8")
     ctx = _ctx(tmp_path, lsp=None)
-    result = await lsp_go_to_definition(ctx, "a.py", line=1, symbol_name="x")
-    assert "LSP unavailable" in result
-    assert "LSP not initialized" in result
+    with pytest.raises(RuntimeError, match="LSP not initialized"):
+        await lsp_go_to_definition(ctx, "a.py", line=1, symbol_name="x")
 
 
 @pytest.mark.asyncio
