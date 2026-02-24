@@ -89,6 +89,7 @@
                 runtimeInputs = [
                   venv
                   pkgs.pandoc
+                  pkgs.ripgrep
                 ];
                 text = ''
                   export OWASP_DOCS_PATH="${owaspDocs}/2025/docs/en"
@@ -121,7 +122,7 @@
             program = "${
               pkgs.writeShellApplication {
                 name = "test";
-                runtimeInputs = [ venv ];
+                runtimeInputs = [ venv pkgs.ripgrep ];
                 text = ''
                   set -e
                   echo "Running unit tests..."
@@ -139,6 +140,7 @@
             packages = [
               pkgs.uv
               pkgs.pandoc
+              pkgs.ripgrep
             ];
             shellHook = ''
               export OWASP_DOCS_PATH="${owaspDocs}/2025/docs/en"
