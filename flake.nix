@@ -125,9 +125,9 @@
                 text = ''
                   set -e
                   echo "Running unit tests..."
-                  ${venv}/bin/pytest tests/unit/ -v
+                  ${venv}/bin/pytest tests/unit/ -v -n auto
                   echo "Running integration & eval tests..."
-                  ${venv}/bin/pytest tests/integration/ tests/evals/ -v
+                  ${venv}/bin/pytest tests/integration/ tests/evals/ -v -n auto
                   echo "All tests passed!"
                 '';
               }

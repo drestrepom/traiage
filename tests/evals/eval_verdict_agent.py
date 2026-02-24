@@ -44,7 +44,7 @@ from triage.models.vulnerability import Vulnerability
 # ---------------------------------------------------------------------------
 
 SAMPLE1_PATH = Path(__file__).resolve().parent.parent.parent / "samples" / "sample1"
-_JUDGE_MODEL = "openai:gpt-4o-mini"
+_JUDGE_MODEL = "openai:gpt-5-mini"
 
 # ---------------------------------------------------------------------------
 # Build canonical inputs
@@ -83,32 +83,46 @@ def _make_deps_01() -> tuple[PipelineDeps, str]:
         ],
         entities={"sink": {"name": "cur.execute", "file": "sample.py", "line": 19}},
         dataflow_hypotheses=[
-            DataflowHypothesis(**{
-                "from": "input() at demo() line 44 → username",
-                "to": "f-string interpolation → cur.execute(sql_query)",
-                "path_summary": "input() → login() → f-string → execute",
-                "confidence": 0.95,
-            })
+            DataflowHypothesis(
+                **{
+                    "from": "input() at demo() line 44 → username",
+                    "to": "f-string interpolation → cur.execute(sql_query)",
+                    "path_summary": "input() → login() → f-string → execute",
+                    "confidence": 0.95,
+                }
+            )
         ],
     )
     trace = TraceResult(
         paths=[
-            PathStep(file="sample.py", function="demo", start_line=44, end_line=44,
-                     code_excerpt='username = input("Username: ")'),
-            PathStep(file="sample.py", function="login", start_line=15, end_line=19,
-                     code_excerpt="sql_query = f\"SELECT ... WHERE username = '{username}' ...\""),
+            PathStep(
+                file="sample.py",
+                function="demo",
+                start_line=44,
+                end_line=44,
+                code_excerpt='username = input("Username: ")',
+            ),
+            PathStep(
+                file="sample.py",
+                function="login",
+                start_line=15,
+                end_line=19,
+                code_excerpt="sql_query = f\"SELECT ... WHERE username = '{username}' ...\"",
+            ),
         ],
         gaps=[],
         confidence=0.95,
     )
     mitigations = MitigationsResult()
-    assumptions = AssumptionsResult(assumptions=[
-        Assumption(
-            text="username/password originate from input() in demo(), no sanitization applied.",
-            category=AssumptionCategory.VERIFIABLE_STATIC,
-            evidence_citations=["sample.py:18", "sample.py:44"],
-        )
-    ])
+    assumptions = AssumptionsResult(
+        assumptions=[
+            Assumption(
+                text="username/password originate from input() in demo(), no sanitization applied.",
+                category=AssumptionCategory.VERIFIABLE_STATIC,
+                evidence_citations=["sample.py:18", "sample.py:44"],
+            )
+        ]
+    )
     deps = PipelineDeps(
         repo_path=SAMPLE1_PATH,
         lsp=None,
@@ -160,26 +174,40 @@ def _make_deps_02() -> tuple[PipelineDeps, str]:
         ],
         entities={"sink": {"name": "cur.execute", "file": "sample.py", "line": 27}},
         dataflow_hypotheses=[
-            DataflowHypothesis(**{
-                "from": "input() at demo() line 44 → username, password",
-                "to": "parameterized cur.execute(query, (username, password))",
-                "path_summary": "input() → new_login() → parameterized execute (safe)",
-                "confidence": 0.85,
-            })
+            DataflowHypothesis(
+                **{
+                    "from": "input() at demo() line 44 → username, password",
+                    "to": "parameterized cur.execute(query, (username, password))",
+                    "path_summary": "input() → new_login() → parameterized execute (safe)",
+                    "confidence": 0.85,
+                }
+            )
         ],
     )
     trace = TraceResult(
         paths=[
-            PathStep(file="sample.py", function="demo", start_line=44, end_line=44,
-                     code_excerpt='username = input("Username: ")'),
-            PathStep(file="sample.py", function="new_login", start_line=24, end_line=30,
-                     code_excerpt='cur.execute("SELECT ... ? AND ?", (username, password))'),
+            PathStep(
+                file="sample.py",
+                function="demo",
+                start_line=44,
+                end_line=44,
+                code_excerpt='username = input("Username: ")',
+            ),
+            PathStep(
+                file="sample.py",
+                function="new_login",
+                start_line=24,
+                end_line=30,
+                code_excerpt='cur.execute("SELECT ... ? AND ?", (username, password))',
+            ),
         ],
         gaps=["Input passes as tuple parameter, not string-interpolated"],
         confidence=0.85,
     )
     mitigations = MitigationsResult(
-        mitigations_found=[{"type": "parameterized_query", "file": "sample.py", "line": 27}],
+        mitigations_found=[
+            {"type": "parameterized_query", "file": "sample.py", "line": 27}
+        ],
         assessment_per_mitigation=[
             MitigationAssessment(
                 sufficient=True,
@@ -188,13 +216,15 @@ def _make_deps_02() -> tuple[PipelineDeps, str]:
             )
         ],
     )
-    assumptions = AssumptionsResult(assumptions=[
-        Assumption(
-            text="DB-API 2.0 driver correctly prevents injection with parameterized queries.",
-            category=AssumptionCategory.NOT_VERIFIABLE_STATIC,
-            evidence_citations=["sample.py:27"],
-        )
-    ])
+    assumptions = AssumptionsResult(
+        assumptions=[
+            Assumption(
+                text="DB-API 2.0 driver correctly prevents injection with parameterized queries.",
+                category=AssumptionCategory.NOT_VERIFIABLE_STATIC,
+                evidence_citations=["sample.py:27"],
+            )
+        ]
+    )
     deps = PipelineDeps(
         repo_path=SAMPLE1_PATH,
         lsp=None,
@@ -242,20 +272,32 @@ def _make_deps_03() -> tuple[PipelineDeps, str]:
         ],
         entities={"sink": {"name": "requests.get", "file": "sample.py", "line": 34}},
         dataflow_hypotheses=[
-            DataflowHypothesis(**{
-                "from": "input() at demo() line 44 → username",
-                "to": "path in requests.get(f'https://api.github.com/users/{username}')",
-                "path_summary": "input() → check_username() → requests.get (host hardcoded)",
-                "confidence": 0.80,
-            })
+            DataflowHypothesis(
+                **{
+                    "from": "input() at demo() line 44 → username",
+                    "to": "path in requests.get(f'https://api.github.com/users/{username}')",
+                    "path_summary": "input() → check_username() → requests.get (host hardcoded)",
+                    "confidence": 0.80,
+                }
+            )
         ],
     )
     trace = TraceResult(
         paths=[
-            PathStep(file="sample.py", function="demo", start_line=44, end_line=44,
-                     code_excerpt='username = input("Username: ")'),
-            PathStep(file="sample.py", function="check_username", start_line=33, end_line=34,
-                     code_excerpt='requests.get(f"https://api.github.com/users/{username}")'),
+            PathStep(
+                file="sample.py",
+                function="demo",
+                start_line=44,
+                end_line=44,
+                code_excerpt='username = input("Username: ")',
+            ),
+            PathStep(
+                file="sample.py",
+                function="check_username",
+                start_line=33,
+                end_line=34,
+                code_excerpt='requests.get(f"https://api.github.com/users/{username}")',
+            ),
         ],
         gaps=["Host is hardcoded — only URL path is user-controlled"],
         confidence=0.75,
@@ -270,13 +312,15 @@ def _make_deps_03() -> tuple[PipelineDeps, str]:
             )
         ],
     )
-    assumptions = AssumptionsResult(assumptions=[
-        Assumption(
-            text="The host 'api.github.com' is hardcoded and cannot be influenced by user input.",
-            category=AssumptionCategory.VERIFIABLE_STATIC,
-            evidence_citations=["sample.py:34"],
-        )
-    ])
+    assumptions = AssumptionsResult(
+        assumptions=[
+            Assumption(
+                text="The host 'api.github.com' is hardcoded and cannot be influenced by user input.",
+                category=AssumptionCategory.VERIFIABLE_STATIC,
+                evidence_citations=["sample.py:34"],
+            )
+        ]
+    )
     deps = PipelineDeps(
         repo_path=SAMPLE1_PATH,
         lsp=None,
@@ -346,35 +390,49 @@ def _make_deps_04() -> tuple[PipelineDeps, str]:
             )
         ],
         dataflow_hypotheses=[
-            DataflowHypothesis(**{
-                "from": "input() → user_input (caller at line 54)",
-                "to": 'os.system(f"touch /tmp/{username}") at line 39',
-                "path_summary": (
-                    "input() → is_online_username(user_input)"
-                    " → os.system f-string (no sanitization, clear injection)"
-                ),
-                "confidence": 0.90,
-            })
+            DataflowHypothesis(
+                **{
+                    "from": "input() → user_input (caller at line 54)",
+                    "to": 'os.system(f"touch /tmp/{username}") at line 39',
+                    "path_summary": (
+                        "input() → is_online_username(user_input)"
+                        " → os.system f-string (no sanitization, clear injection)"
+                    ),
+                    "confidence": 0.90,
+                }
+            )
         ],
     )
     trace = TraceResult(
         paths=[
-            PathStep(file="sample.py", function="demo", start_line=44, end_line=44,
-                     code_excerpt='username = input("Username: ")'),
-            PathStep(file="sample.py", function="is_online_username", start_line=37, end_line=39,
-                     code_excerpt='os.system(f"touch /tmp/{username}")'),
+            PathStep(
+                file="sample.py",
+                function="demo",
+                start_line=44,
+                end_line=44,
+                code_excerpt='username = input("Username: ")',
+            ),
+            PathStep(
+                file="sample.py",
+                function="is_online_username",
+                start_line=37,
+                end_line=39,
+                code_excerpt='os.system(f"touch /tmp/{username}")',
+            ),
         ],
         gaps=[],
         confidence=0.92,
     )
     mitigations = MitigationsResult()
-    assumptions = AssumptionsResult(assumptions=[
-        Assumption(
-            text="username is not sanitized before passing to os.system().",
-            category=AssumptionCategory.VERIFIABLE_STATIC,
-            evidence_citations=["sample.py:39"],
-        )
-    ])
+    assumptions = AssumptionsResult(
+        assumptions=[
+            Assumption(
+                text="username is not sanitized before passing to os.system().",
+                category=AssumptionCategory.VERIFIABLE_STATIC,
+                evidence_citations=["sample.py:39"],
+            )
+        ]
+    )
     deps = PipelineDeps(
         repo_path=SAMPLE1_PATH,
         lsp=None,

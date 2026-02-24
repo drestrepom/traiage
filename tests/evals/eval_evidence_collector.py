@@ -30,7 +30,7 @@ from triage.models.vulnerability import Vulnerability
 # ---------------------------------------------------------------------------
 
 SAMPLE1_PATH = Path(__file__).resolve().parent.parent.parent / "samples" / "sample1"
-_JUDGE_MODEL = "openai:gpt-4o-mini"
+_JUDGE_MODEL = "openai:gpt-5-mini"
 
 # ---------------------------------------------------------------------------
 # Vulnerability definitions
@@ -167,9 +167,7 @@ def require_openai_key_evals() -> None:  # type: ignore[return]
 
 async def test_evidence_collector_eval_quality() -> None:
     """LLM judge eval: A0 evidence relevance and quality for vuln_01 and vuln_02."""
-    report = await evidence_dataset.evaluate(
-        _run_evidence_collector, max_concurrency=2
-    )
+    report = await evidence_dataset.evaluate(_run_evidence_collector, max_concurrency=2)
     report.print(include_reasons=True)
 
     for case_result in report.cases:
