@@ -61,33 +61,6 @@ _VULNS: dict[str, Vulnerability] = {
 # ---------------------------------------------------------------------------
 
 
-async def _run_evidence_collector(inputs: dict[str, object]) -> str:
-    """Run A0 and return a JSON-serializable summary of the EvidencePack."""
-    vuln = inputs["vuln"]
-    prompt = _build_a0_prompt(vuln, SAMPLE1_PATH)  # type: ignore[arg-type]
-
-    agent = create_evidence_collector_agent()
-    async with start_lsp_client(SAMPLE1_PATH) as lsp:
-        deps = AgentDeps(repo_path=SAMPLE1_PATH, lsp=lsp, vulnerability=vuln)  # type: ignore[arg-type]
-        result = await agent.run(prompt, deps=deps)
-    pack: EvidencePack = result.output
-
-    # Serialize to a compact JSON string for the judge to evaluate
-    summary = {
-        "finding_id": pack.finding_id,
-        "primary_file": pack.primary_file,
-        "num_snippets": len(pack.snippets),
-        "snippet_ranges": [
-            {"file": s.file, "start_line": s.start_line, "end_line": s.end_line}
-            for s in pack.snippets
-        ],
-        "entity_keys": list(pack.entities.keys()),
-        "num_dataflow_hypotheses": len(pack.dataflow_hypotheses),
-        "dataflow_confidences": [h.confidence for h in pack.dataflow_hypotheses],
-        "open_questions": pack.open_questions,
-        "snippet_texts": [s.text[:200] for s in pack.snippets],  # Truncated for judge
-    }
-    return json.dumps(summary, indent=2)
 
 
 # ---------------------------------------------------------------------------
@@ -169,7 +142,34 @@ def require_openai_key_evals() -> None:  # type: ignore[return]
 
 async def test_evidence_collector_eval_quality() -> None:
     """LLM judge eval: A0 evidence relevance and quality for vuln_01 and vuln_02."""
-    report = await evidence_dataset.evaluate(_run_evidence_collector, max_concurrency=2)
+    async with start_lsp_client(SAMPLE1_PATH) as lsp:
+
+        async def _run(inputs: dict[str, object]) -> str:
+            """Run A0 and return a JSON-serializable summary of the EvidencePack."""
+            vuln = inputs["vuln"]
+            prompt = _build_a0_prompt(vuln, SAMPLE1_PATH)  # type: ignore[arg-type]
+            agent = create_evidence_collector_agent()
+            deps = AgentDeps(repo_path=SAMPLE1_PATH, lsp=lsp, vulnerability=vuln)  # type: ignore[arg-type]
+            result = await agent.run(prompt, deps=deps)
+            pack: EvidencePack = result.output
+            summary = {
+                "finding_id": pack.finding_id,
+                "primary_file": pack.primary_file,
+                "num_snippets": len(pack.snippets),
+                "snippet_ranges": [
+                    {"file": s.file, "start_line": s.start_line, "end_line": s.end_line}
+                    for s in pack.snippets
+                ],
+                "entity_keys": list(pack.entities.keys()),
+                "num_dataflow_hypotheses": len(pack.dataflow_hypotheses),
+                "dataflow_confidences": [h.confidence for h in pack.dataflow_hypotheses],
+                "open_questions": pack.open_questions,
+                "snippet_texts": [s.text[:200] for s in pack.snippets],  # Truncated for judge
+            }
+            return json.dumps(summary, indent=2)
+
+        report = await evidence_dataset.evaluate(_run, max_concurrency=2)
+
     report.print(include_reasons=True)
 
     for case_result in report.cases:

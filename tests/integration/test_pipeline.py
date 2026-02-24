@@ -77,14 +77,22 @@ async def test_pipeline_vuln03_ssrf(vuln_03: Vulnerability, lsp_session) -> None
 
 
 async def test_pipeline_vuln04_cmdi(vuln_04: Vulnerability, lsp_session) -> None:  # type: ignore[no-untyped-def]
-    """Full pipeline must classify the os.system command injection as TRUE_VULNERABILITY."""
+    """Full pipeline must classify the os.system command injection as FALSE_POSITIVE.
+
+    demo() in sample.py does not call is_online_username() — there is no static
+    dataflow from input() to os.system(). The pipeline correctly identifies this
+    as FALSE_POSITIVE because no callsite connects demo() to is_online_username().
+    """
     report = await triage_finding(vuln_04, SAMPLE1_PATH, lsp=lsp_session)
 
     assert isinstance(report, TriagePipelineReport)
-    assert report.verdict.verdict == VerdictPipeline.TRUE_VULNERABILITY, (
-        f"Expected TRUE_VULNERABILITY for vuln_04, got {report.verdict.verdict}. "
+    assert report.verdict.verdict == VerdictPipeline.FALSE_POSITIVE, (
+        f"Expected FALSE_POSITIVE for vuln_04, got {report.verdict.verdict}. "
         f"Reasoning: {report.verdict.reasoning}"
     )
-    assert report.severity_priority is not None, (
-        "severity_priority must be set for a TRUE_VULNERABILITY"
+    assert report.minimal_counterexample is not None, (
+        "minimal_counterexample must be set for a FALSE_POSITIVE"
+    )
+    assert report.severity_priority is None, (
+        "severity_priority should be None for a FALSE_POSITIVE"
     )

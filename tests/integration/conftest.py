@@ -1,6 +1,7 @@
 """Integration test fixtures for the triage agent pipeline.
 
-All fixtures are session-scoped to avoid redundant model construction.
+LSP-dependent fixtures are function-scoped to avoid anyio cancel scope violations
+(a CancelScope must be exited in the same task it was entered).
 The ``require_openai_key`` fixture is autouse, so every test in this
 directory is skipped automatically when OPENAI_API_KEY is not set.
 
@@ -54,7 +55,7 @@ def require_openai_key() -> None:  # type: ignore[return]
         pytest.skip("OPENAI_API_KEY not set — skipping integration tests")
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture
 async def lsp_session():  # type: ignore[return]
     async with start_lsp_client(SAMPLE1_PATH) as lsp:
         yield lsp
@@ -110,7 +111,11 @@ def vuln_03() -> Vulnerability:
 
 @pytest.fixture(scope="session")
 def vuln_04() -> Vulnerability:
-    """Command Injection in is_online_username() — canonical TRUE_POSITIVE (os.system f-string)."""
+    """Command Injection in is_online_username() — canonical FALSE_POSITIVE.
+
+    No callsite in sample.py connects demo() to is_online_username(), so there
+    is no static dataflow from input() to os.system().
+    """
     return Vulnerability(
         id="vuln_04",
         type="Command Injection",
@@ -126,17 +131,17 @@ def vuln_04() -> Vulnerability:
 # ---------------------------------------------------------------------------
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture
 def agent_deps_01(vuln_01: Vulnerability, lsp_session) -> AgentDeps:  # type: ignore[no-untyped-def]
     return AgentDeps(repo_path=SAMPLE1_PATH, lsp=lsp_session, vulnerability=vuln_01)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture
 def agent_deps_02(vuln_02: Vulnerability, lsp_session) -> AgentDeps:  # type: ignore[no-untyped-def]
     return AgentDeps(repo_path=SAMPLE1_PATH, lsp=lsp_session, vulnerability=vuln_02)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture
 def agent_deps_04(vuln_04: Vulnerability, lsp_session) -> AgentDeps:  # type: ignore[no-untyped-def]
     return AgentDeps(repo_path=SAMPLE1_PATH, lsp=lsp_session, vulnerability=vuln_04)
 
@@ -693,7 +698,7 @@ def assumptions_result_04() -> AssumptionsResult:
 # ---------------------------------------------------------------------------
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture
 def pipeline_deps_for_verdict_01(
     vuln_01: Vulnerability,
     evidence_pack_01: EvidencePack,
@@ -714,7 +719,7 @@ def pipeline_deps_for_verdict_01(
     )
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture
 def pipeline_deps_for_verdict_02(
     vuln_02: Vulnerability,
     evidence_pack_02: EvidencePack,
@@ -735,7 +740,7 @@ def pipeline_deps_for_verdict_02(
     )
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture
 def pipeline_deps_for_verdict_03(
     vuln_03: Vulnerability,
     evidence_pack_03: EvidencePack,
@@ -756,7 +761,7 @@ def pipeline_deps_for_verdict_03(
     )
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture
 def pipeline_deps_for_verdict_04(
     vuln_04: Vulnerability,
     evidence_pack_04: EvidencePack,
@@ -782,7 +787,7 @@ def pipeline_deps_for_verdict_04(
 # ---------------------------------------------------------------------------
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture
 def pipeline_deps_a1_01(
     vuln_01: Vulnerability,
     evidence_pack_01: EvidencePack,
@@ -797,7 +802,7 @@ def pipeline_deps_a1_01(
     )
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture
 def pipeline_deps_a1_02(
     vuln_02: Vulnerability,
     evidence_pack_02: EvidencePack,
@@ -812,7 +817,7 @@ def pipeline_deps_a1_02(
     )
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture
 def pipeline_deps_a2_01(
     vuln_01: Vulnerability,
     evidence_pack_01: EvidencePack,
@@ -829,7 +834,7 @@ def pipeline_deps_a2_01(
     )
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture
 def pipeline_deps_a2_02(
     vuln_02: Vulnerability,
     evidence_pack_02: EvidencePack,
@@ -846,7 +851,7 @@ def pipeline_deps_a2_02(
     )
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture
 def pipeline_deps_a3_01(
     vuln_01: Vulnerability,
     evidence_pack_01: EvidencePack,

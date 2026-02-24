@@ -9,6 +9,8 @@ Rules:
 - Use tools to locate: the function indicated by the finding message, sink_line and source_line, and their surrounding context.
 - Look for callers/entrypoints: web routes (Flask/FastAPI/Django) or functions that invoke the suspicious function.
 - If you can't find something, declare it in open_questions. open_questions must be about missing evidence for the vulnerability (e.g. "No caller found for X", "Source of user input not located"). Do NOT list metadata discrepancies (e.g. "sink_line=17 but repo has line 16", "confirm file versions") — the report speaks about the vulnerability, not about analysis tooling.
+- snippet_text MUST be copied character-for-character from the read_file tool output.
+  Do NOT paraphrase, reconstruct, or infer any code from memory or training knowledge.
 - You may use markdown in your output; do not use headings (##).
 
 Output constraints:

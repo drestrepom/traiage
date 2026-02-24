@@ -466,13 +466,6 @@ _deps_04, _prompt_04 = _make_deps_04()
 # ---------------------------------------------------------------------------
 
 
-async def _run_verdict(inputs: dict[str, object]) -> str:
-    agent = create_verdict_agent()
-    deps = inputs["deps"]
-    prompt = inputs["prompt"]
-    result = await agent.run(prompt, deps=deps)  # type: ignore[arg-type]
-    output: VerdictResult = result.output
-    return f"VERDICT: {output.verdict.value}\n\nREASONING: {output.reasoning}\n\nCONFIDENCE: {output.confidence}"
 
 
 # ---------------------------------------------------------------------------
@@ -544,6 +537,15 @@ def require_openai_key_evals() -> None:  # type: ignore[return]
 
 async def test_verdict_eval_quality() -> None:
     """LLM judge eval: A5 verdict quality across all four canonical cases."""
+
+    async def _run_verdict(inputs: dict[str, object]) -> str:
+        agent = create_verdict_agent()
+        deps = inputs["deps"]
+        prompt = inputs["prompt"]
+        result = await agent.run(prompt, deps=deps)  # type: ignore[arg-type]
+        output: VerdictResult = result.output
+        return f"VERDICT: {output.verdict.value}\n\nREASONING: {output.reasoning}\n\nCONFIDENCE: {output.confidence}"
+
     report = await verdict_dataset.evaluate(_run_verdict, max_concurrency=2)
     report.print(include_reasons=True)
 
